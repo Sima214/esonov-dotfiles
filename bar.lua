@@ -33,23 +33,26 @@ local function on_new_screen(scr)
   -- Create a tasklist widget.
   scr.mytasklist = awful.widget.tasklist(scr, awful.widget.tasklist.filter.currenttags, awful.button({ }, 1, on_click_task))
   -- Create the wibox 
-  scr.mywibox = awful.wibar({ position = "top", screen = scr })
+  scr.mywibox = awful.wibar({ position = "top", height = 36, screen = scr })
   -- Add widgets to the wibox 
   scr.mywibox:setup {
-    layout = wibox.layout.align.horizontal,
-    {-- Left widgets
+    layout = wibox.layout.grid,
+    forced_num_cols = 1,
+    forced_num_rows = 2,
+    homogeneous = false,
+    vertical_expand = false,
+    horizontal_expand = true,
+    -- Up
+    {
       layout = wibox.layout.fixed.horizontal,
       taglist,
-      scr.mypromptbox
-    },-- Middle widget
-    scr.mytasklist,
-    {-- Right widgets
-      layout = wibox.layout.fixed.horizontal,
+      scr.mypromptbox,
       awful.widget.keyboardlayout(),
       wibox.widget.systray(),
-      wibox.widget.textclock(),
-      scr.mylayoutbox
-    }
+      wibox.widget.textclock()
+    },
+    -- Down
+    scr.mytasklist
   }
   print("Registered new screen:", scr.index)
 end
