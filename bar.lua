@@ -22,8 +22,8 @@ local function on_click_task(c)
 end
 
 local function on_new_screen(scr)
-  print("Registering new screen:", scr.index)
-  -- Register all the tags(workspaces).
+  print("New screen:", scr.index)
+  -- Register all the tags.
   tags.init(scr)
   -- Generate the taglist widget.
   local taglist = tags.gen_widget(scr)
@@ -54,7 +54,6 @@ local function on_new_screen(scr)
     -- Down
     scr.mytasklist
   }
-  print("Registered new screen:", scr.index)
 end
 
 -- Event registration.
