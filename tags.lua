@@ -5,11 +5,14 @@ local awful = require("awful")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
 local lfs = assert(require("lfs"))
+-- Native libs.
+local pixbuf = require("lgi").GdkPixbuf
 
 -- Settings
 local ICON_SIZE = 24
 local PADDING = 1
 local EXTRA_HORIZONTAL_SPACING = 8                       
+local cache_path = icons_path.."cache/"
 
 -- Lookup tables.
 local LAYOUT_STR2OBJ = {
@@ -49,6 +52,17 @@ colors_active["0000ff"] = "#4629bb"
 local tag_registry = {}
 
 -- Private functions.
+local svg_surface_scaled_tmp_file = os.tmpname()
+local function svg_scaled_surface(data, width, height)
+  -- Could not make the pixbug loader work.
+  local f = io.open(svg_surface_scaled_tmp_file, "w")
+  f:write(data)
+  f:close()
+  local s, msg = awesome.load_image(svg_surface_scaled_tmp_file)
+  os.remove(svg_surface_scaled_tmp_file)
+  return s, msg
+end
+
 local function preload_resources()
   print("Generating tag icons...")
   for _, tag in ipairs(tag_registry) do
@@ -57,15 +71,8 @@ local function preload_resources()
       local base_icon = i:read("*all")
       i:close()
       local inactive = base_icon:gsub("#(%x%x%x%x%x%x)", colors_inactive)
+      assert(svg_scaled_surface(inactive))
       local active = base_icon:gsub("#(%x%x%x%x%x%x)", colors_active)
-      local cache_path = icons_path.."cache/"
-      lfs.mkdir(cache_path)
-      local finactive = io.open(cache_path.."inactive_"..tag.icon, "w")
-      local factive = io.open(cache_path.."active_"..tag.icon, "w")
-      finactive:write(inactive)
-      finactive:close()
-      factive:write(active)
-      factive:close()
     else
       print("Could not load icon "..tag.icon..". "..msg)
     end
