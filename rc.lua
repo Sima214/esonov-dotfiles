@@ -60,6 +60,11 @@ function load_prop(filename)
   end
 end
 
+-- Basic implemention using the shell.
+function mkfifo(path)
+  return os.execute(string.format("mkfifo \"%s\"", path))
+end
+
 -----------------------------------------------------------------
 -- Execute static configuration code.
 assert(loadfile(gears.filesystem.get_configuration_dir().."static.lua"))()

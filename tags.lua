@@ -1,12 +1,16 @@
 local api = {}
 
--- Libraries.
+-- WM libs.
 local awful = require("awful")
+local gears = require("gears")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
-local lfs = assert(require("lfs"))
 -- Native libs.
 local pixbuf = require("lgi").GdkPixbuf
+local cairo = require("lgi").cairo
+-- Extra libs.
+local lfs = assert(require("lfs"))
+local md5 = assert(require("md5"), "https://github.com/keplerproject/md5").sumhexa
 
 -- Settings
 local ICON_SIZE = 24
@@ -53,14 +57,17 @@ local tag_registry = {}
 
 -- Private functions.
 local svg_surface_scaled_tmp_file = os.tmpname()
-local function svg_scaled_surface(data, width, height)
-  -- Could not make the pixbug loader work.
-  local f = io.open(svg_surface_scaled_tmp_file, "w")
-  f:write(data)
-  f:close()
-  local s, msg = awesome.load_image(svg_surface_scaled_tmp_file)
-  os.remove(svg_surface_scaled_tmp_file)
-  return s, msg
+local function svg_scaled_surface(name, data, width, height)
+  lfs.mkdir("cache")
+  local cache_code = string.format("cache/%s_%ix%i_%s.png", md5(data), width, height, name)
+  -- Check if icon is cached.
+  if lfs.attributes() then
+    -- png file to surface
+  else
+    -- png generation
+    -- async save
+    -- png to surface
+  end
 end
 
 local function preload_resources()
@@ -71,7 +78,7 @@ local function preload_resources()
       local base_icon = i:read("*all")
       i:close()
       local inactive = base_icon:gsub("#(%x%x%x%x%x%x)", colors_inactive)
-      assert(svg_scaled_surface(inactive))
+      --svg_scaled_surface(tag.name ,inactive, ICON_SIZE, ICON_SIZE)
       local active = base_icon:gsub("#(%x%x%x%x%x%x)", colors_active)
     else
       print("Could not load icon "..tag.icon..". "..msg)
