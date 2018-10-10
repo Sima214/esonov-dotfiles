@@ -12,6 +12,9 @@ require("naughty.dbus")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
 
+-- Native libs.
+local cairo = require("lgi").cairo
+
 -----------------------------------------------------------------
 -- Basic setup to help with debugging.
 local function debug_error(err)
@@ -60,10 +63,15 @@ function load_prop(filename)
   end
 end
 
--- Basic implemention using the shell.
-function mkfifo(path)
-  return os.execute(string.format("mkfifo \"%s\"", path))
+-- Check if a cairo surface is valid.
+function is_surface_valid(s)
+  if s.status == "SUCCESS" then
+    return true
+  else
+    return false, s.status
+  end
 end
+
 
 -----------------------------------------------------------------
 -- Execute static configuration code.

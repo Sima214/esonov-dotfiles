@@ -6,7 +6,6 @@ local gears = require("gears")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
 -- Native libs.
-local pixbuf = require("lgi").GdkPixbuf
 local cairo = require("lgi").cairo
 -- Extra libs.
 local lfs = assert(require("lfs"))
@@ -56,17 +55,26 @@ colors_active["0000ff"] = "#4629bb"
 local tag_registry = {}
 
 -- Private functions.
-local svg_surface_scaled_tmp_file = os.tmpname()
 local function svg_scaled_surface(name, data, width, height)
   lfs.mkdir("cache")
-  local cache_code = string.format("cache/%s_%ix%i_%s.png", md5(data), width, height, name)
-  -- Check if icon is cached.
-  if lfs.attributes() then
-    -- png file to surface
+  local cache_code = string.format("%s_%ix%i_%s", md5(data), width, height, name)
+  local cache_fn = "cache/"..cache_code..".png"
+  local final_surface = nil
+  -- Check if icon is not cached.
+  if lfs.attributes(icons_path..cache_fn, "mode")~="file" then
+    -- png conversion
+    local converter = io.popen(string.format("inkscape -z -e %s -w %i -h %i /dev/stdin", icons_path..cache_fn, width, height), "w")
+    converter:write(data)
+    if not converter:close() then
+      return nil, "Conversion failed."
+    end
+  end
+  -- png file to surface
+  final_surface = cairo.ImageSurface.create_from_png(icons_path..cache_fn)
+  if is_surface_valid(final_surface) then
+    return final_surface
   else
-    -- png generation
-    -- async save
-    -- png to surface
+    return nil, "Could not load surface: "..final_surface.status
   end
 end
 
@@ -78,8 +86,10 @@ local function preload_resources()
       local base_icon = i:read("*all")
       i:close()
       local inactive = base_icon:gsub("#(%x%x%x%x%x%x)", colors_inactive)
-      --svg_scaled_surface(tag.name ,inactive, ICON_SIZE, ICON_SIZE)
       local active = base_icon:gsub("#(%x%x%x%x%x%x)", colors_active)
+      -- These methods must succeed for the program to function.
+      local inactive_surface = assert(svg_scaled_surface("inactive_"..tag.name ,inactive, ICON_SIZE, ICON_SIZE))
+      local active_surface = assert(svg_scaled_surface("active_"..tag.name ,active, ICON_SIZE, ICON_SIZE))
     else
       print("Could not load icon "..tag.icon..". "..msg)
     end
