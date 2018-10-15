@@ -50,14 +50,20 @@ colors_active["ffffff"] = "#cac8d1"
 colors_active["ff0000"] = "#4629bb"
 colors_active["00ff00"] = "#4629bb"
 colors_active["0000ff"] = "#4629bb"
-
+colors_inactive["0000ff"] = "#292089"
+local colors_highlight = {}
+colors_highlight["000000"] = "#2e293a"
+colors_highlight["ffffff"] = "#cac8d1"
+colors_highlight["ff0000"] = "#2a00c1"
+colors_highlight["00ff00"] = "#2a00c1"
+colors_highlight["0000ff"] = "#4629bb"
 -- Internal state.
 local tag_registry = {}
 
 -- Private functions.
-local function svg_scaled_surface(name, data, width, height)
-  lfs.mkdir("cache")
-  local cache_code = string.format("%s_%ix%i_%s", md5(data), width, height, name)
+local function svg_scaled_surface(name, data, revision, width, height)
+  lfs.mkdir(icons_path.."cache")
+  local cache_code = string.format("%s_%ix%i_%s", tostring(revision), width, height, name)
   local cache_fn = "cache/"..cache_code..".png"
   local final_surface = nil
   -- Check if icon is not cached.
@@ -78,6 +84,11 @@ local function svg_scaled_surface(name, data, width, height)
   end
 end
 
+local function generate_icon_set(is, as, hs)
+  local final_set = {inactive = is}
+  return final_set
+end
+
 local function preload_resources()
   print("Generating tag icons...")
   for _, tag in ipairs(tag_registry) do
@@ -85,11 +96,15 @@ local function preload_resources()
     if i then
       local base_icon = i:read("*all")
       i:close()
+      local revision = lfs.attributes(icons_path..tag.icon, "modification")
       local inactive = base_icon:gsub("#(%x%x%x%x%x%x)", colors_inactive)
       local active = base_icon:gsub("#(%x%x%x%x%x%x)", colors_active)
+      local highlight = base_icon:gsub("#(%x%x%x%x%x%x)", colors_highlight)
       -- These methods must succeed for the program to function.
-      local inactive_surface = assert(svg_scaled_surface("inactive_"..tag.name ,inactive, ICON_SIZE, ICON_SIZE))
-      local active_surface = assert(svg_scaled_surface("active_"..tag.name ,active, ICON_SIZE, ICON_SIZE))
+      local inactive_surface = assert(svg_scaled_surface("inactive_"..tag.name ,inactive, revision, ICON_SIZE, ICON_SIZE))
+      local active_surface = assert(svg_scaled_surface("active_"..tag.name ,active, revision, ICON_SIZE, ICON_SIZE))
+      local highlight_surface = assert(svg_scaled_surface("highlight_"..tag.name, highlight, revision, ICON_SIZE, ICON_SIZE))
+      tag.icon_set = generate_icon_set(inactive_surface, active_surface, highlight_surface)
     else
       print("Could not load icon "..tag.icon..". "..msg)
     end
