@@ -48,7 +48,12 @@ local function on_new_screen(scr)
       taglist,
       scr.mypromptbox,
       awful.widget.keyboardlayout(),
-      wibox.widget.systray(),
+      {
+        layout = wibox.container.constraint,
+        height = 26,
+        strategy = "max",
+        wibox.widget.systray()
+      },
       wibox.widget.textclock()
     },
     -- Down

@@ -1,17 +1,8 @@
 -- Standard awesome library
 local gears = require("gears")
-local awful = require("awful")
-require("awful.autofocus")
--- Widget and layout library
-local wibox = require("wibox")
--- Theme handling library
-local beautiful = require("beautiful")
 -- Notification library
 local naughty = require("naughty")
 require("naughty.dbus")
-local menubar = require("menubar")
-local hotkeys_popup = require("awful.hotkeys_popup").widget
-
 -- Native libs.
 local cairo = require("lgi").cairo
 
@@ -72,6 +63,17 @@ function is_surface_valid(s)
   end
 end
 
+-- theme color to cairo rgb
+function color2rgb(color)
+  local r, g, b = 0.0, 0.0, 0.0
+  local rgb = tonumber("0x"..color:match("#(%x+)"))
+  b = (rgb&0xff)/0xff
+  rgb = rgb>>8
+  g = (rgb&0xff)/0xff
+  rgb = rgb>>8
+  r = (rgb&0xff)/0xff
+  return r, g, b
+end
 
 -----------------------------------------------------------------
 -- Execute static configuration code.

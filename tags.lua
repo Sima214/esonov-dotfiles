@@ -2,14 +2,12 @@ local api = {}
 
 -- WM libs.
 local awful = require("awful")
-local gears = require("gears")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
 -- Native libs.
 local cairo = require("lgi").cairo
 -- Extra libs.
 local lfs = assert(require("lfs"))
-local md5 = assert(require("md5"), "https://github.com/keplerproject/md5").sumhexa
 
 -- Settings
 local ICON_SIZE = 24
@@ -85,7 +83,22 @@ local function svg_scaled_surface(name, data, revision, width, height)
 end
 
 local function generate_icon_set(is, as, hs)
-  local final_set = {inactive = is}
+  local icon_size = ICON_SIZE+PADDING*2
+  local final_set = {}
+  -- 0. Generate outline/halo.
+  local halo = cairo.ImageSurface.create(cairo.Format.ARGB32, icon_size, icon_size)
+  local cr = cairo.Context.create(halo)
+  cr:set_source_rgb(color2rgb(beautiful.bg_focus))
+  cr:scale(1.08, 1.08)
+  cr:mask_surface(is, 1, 1)
+  -- 1. Generate inactive icon.
+  final_set.inactive = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
+  local cr = cairo.Context.create(final_set.inactive)
+  cr:set_source_rgb(color2rgb(beautiful.bg_normal))
+  cr:rectangle(0, 0, icon_size, icon_size)
+  cr:fill()
+  cr:set_source_surface(is, 1, 1)
+  cr:paint()
   return final_set
 end
 
@@ -112,7 +125,17 @@ local function preload_resources()
   end
 end
 
+-- ct constains wibox, drawable, dpi and screen.
+-- cr is the cairo context.
 local function render_tag(self, ct, cr, w, h)
+  -- First prepare the cairo context.
+  for i, tag in ipairs(tag_registry) do
+    -- Calculate destination offset.
+    local offset = (i-1)*(PADDING*2+ICON_SIZE+EXTRA_HORIZONTAL_SPACING)
+    -- Paint the right surface.
+    cr:set_source_surface(tag.icon_set.inactive, offset, 0)
+    cr:paint()
+  end
 end
 
 -- Api.
