@@ -9,6 +9,11 @@ local beautiful = require("beautiful")
 
 -- Print generic information.
 print("Awesome "..awesome.version, "(".._VERSION..")")
+if awesome.composite_manager_running then
+  print("Composite manager detected!")
+else
+  print("No composite manager detected!")
+end
 print("Config path: "..gears.filesystem.get_configuration_dir())
 print("Theme path:", awesome.themes_path)
 print("Icons path:", awesome.icon_path)

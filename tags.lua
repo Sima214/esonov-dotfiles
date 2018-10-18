@@ -2,6 +2,7 @@ local api = {}
 
 -- WM libs.
 local awful = require("awful")
+local gears = require("gears")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
 -- Native libs.
@@ -121,7 +122,7 @@ local function preload_resources()
     else
       print("Could not load icon "..tag.icon..". "..msg)
     end
-    print("Generated icons for: "..tag.name)
+    print("Loaded icons for: "..tag.name)
   end
 end
 
@@ -135,6 +136,27 @@ local function render_tag(self, ct, cr, w, h)
     -- Paint the right surface.
     cr:set_source_surface(tag.icon_set.inactive, offset, 0)
     cr:paint()
+  end
+end
+
+-- Client grabbing state.
+local waiting_for_id = nil
+local waiting_tag_index = nil
+
+-- Handlers for finishing up spawn events.
+local function handle_client_ready(args)
+  if args.id==waiting_for_id then
+    tag_registry[waiting_tag_index].instance:view_only()
+    waiting_for_id = nil
+    waiting_tag_index = nil
+    print(args.id.." spawned successfully.")
+  end
+end
+local function handle_client_failed(args)
+  if args.id==waiting_for_id then
+    waiting_for_id = nil
+    waiting_tag_index = nil
+    print("For some reason spawn "..args.id.." failed to start.")
   end
 end
 
@@ -194,7 +216,35 @@ function api.gen_widget(scr)
   return wtl
 end
 
+function api.select_tag(tag_id)
+  local selected = tag_registry[tag_id]
+  local tag = selected.instance
+  -- Test if tag has any clients.
+  if #tag:clients() ~= 0 then
+    -- If it has then switch to it.
+    tag:view_only()
+  elseif selected.spawn_cmd and #selected.spawn_cmd~=0 then
+    -- Else start the default program(if any) and switch to it when window is ready.
+    local pid, id = awesome.spawn(selected.spawn_cmd, true)
+    if type(pid)=="number" then
+      waiting_for_id = id
+      waiting_tag_index = selected.index
+      print(string.format("Tag %s waiting for %s (pid: %i) on id %s", selected.name, selected.spawn_cmd, pid, id))
+    else
+      -- Spawn errored. Error message is stored in pid.
+      print("Could not spawn \""..selected.spawn_cmd.."\": "..pid)
+    end
+  else
+    -- There is nothing else to do, so just log this.
+    print("Tried selecting tag "..selected.name.." but it's empty.")
+  end
+end
+
 function api.register_buttons()
+  -- Register general handlers.
+  connect_signal("spawn::completed", handle_client_ready)
+  connect_signal("spawn::canceled", handle_client_failed)
+  connect_signal("spawn::timeout", handle_client_failed)
 end
 
 return api
