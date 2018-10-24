@@ -7,8 +7,10 @@ local wibox = require("wibox")
 local beautiful = require("beautiful")
 -- Native libs.
 local cairo = require("lgi").cairo
+-- Helpers.
+local clients = require("clients")
 -- Extra libs.
-local lfs = assert(require("lfs"))
+local lfs = assert(require("lfs"), "Please install Linux File System!")
 
 -- Settings
 local ICON_SIZE = 24
@@ -197,6 +199,8 @@ function api.init(scr)
     obj.instance = awful.tag.add(obj.name, args)
   end
   tag_registry[1].instance.selected = true
+  -- Setup clients.
+  clients.setup(tag_registry)
 end
 
 function api.gen_widget(scr)
