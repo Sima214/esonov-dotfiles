@@ -11,11 +11,7 @@ fi
 
 # Custom configuration.
 alias ls='ls --color=auto'
-GREEN="\[$(tput setaf 2)\]"
-RESET="\[$(tput sgr0)\]"
 PS1='\W \$ '
 
+# Fix environment.
 export GPG_TTY=$(tty)
-
-# No dupplicate history entries.
-#export HISTCONTROL=erasedups
