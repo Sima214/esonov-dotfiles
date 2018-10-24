@@ -1,0 +1,1 @@
+/home/sima/.bash_profile

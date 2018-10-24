@@ -240,11 +240,18 @@ function api.select_tag(tag_id)
   end
 end
 
-function api.register_buttons()
+function api.register_buttons(keyboard, mousekey)
+  -- Register keyboard shortcuts.
+  for _, obj in ipairs(tag_registry) do
+    local new_key = awful.key({modkey}, obj.key, function() api.select_tag(obj.index) end)
+    keyboard = gears.table.join(keyboard, new_key)
+  end
   -- Register general handlers.
   connect_signal("spawn::completed", handle_client_ready)
   connect_signal("spawn::canceled", handle_client_failed)
   connect_signal("spawn::timeout", handle_client_failed)
+  -- Return new bindings.
+  return keyboard, mousekey
 end
 
 return api

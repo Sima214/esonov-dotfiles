@@ -1,0 +1,1 @@
+/home/sima/.sensible.bash

@@ -75,6 +75,11 @@ function color2rgb(color)
   return r, g, b
 end
 
+-- Create an empty file (touch).
+function touch(filename)
+  return os.execute("touch "..filename)
+end
+
 -----------------------------------------------------------------
 -- Execute static configuration code.
 assert(loadfile(gears.filesystem.get_configuration_dir().."static.lua"))()
