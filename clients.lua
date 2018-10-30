@@ -60,7 +60,10 @@ function api.setup(tags)
                      keys = clientkeys,
                      buttons = clientbuttons,
                      screen = awful.screen.preferred,
-                     placement = awful.placement.no_overlap+awful.placement.no_offscreen}
+                     placement = awful.placement.no_overlap+awful.placement.no_offscreen,
+                     -- Set default tag here.
+                     tag = tags[9].name
+                    }
     },
     {
       rule_any = {type = { "normal", "dialog" }},
@@ -69,8 +72,10 @@ function api.setup(tags)
   }
   print("Restraining clients...")
   for _, tag in ipairs(tags) do
-    local new_rule = {rule_any = tag.grab_filters, except_any = nograb_filters, properties = { tag = tag.name }}
-    table.insert(awful.rules.rules, new_rule)
+    if tag.grab_filters or tag.nograb_filters or tag.grab_filter then
+        local new_rule = {rule = tag.grab_filter, rule_any = tag.grab_filters, except_any = tag.nograb_filters, properties = { tag = tag.name }}
+        table.insert(awful.rules.rules, new_rule)
+    end
   end
 end
 

@@ -59,6 +59,7 @@ local function on_new_screen(scr)
     -- Down
     scr.mytasklist
   }
+  -- Floaty test
 end
 
 -- Event registration.

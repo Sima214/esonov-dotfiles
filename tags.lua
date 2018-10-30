@@ -229,7 +229,7 @@ function api.select_tag(tag_id)
     tag:view_only()
   elseif selected.spawn_cmd and #selected.spawn_cmd~=0 then
     -- Else start the default program(if any) and switch to it when window is ready.
-    local pid, id = awesome.spawn(selected.spawn_cmd, true)
+    local pid, id = awful.spawn.spawn(selected.spawn_cmd, true)
     if type(pid)=="number" then
       waiting_for_id = id
       waiting_tag_index = selected.index
@@ -251,9 +251,9 @@ function api.register_buttons(keyboard, mousekey)
     keyboard = gears.table.join(keyboard, new_key)
   end
   -- Register general handlers.
-  connect_signal("spawn::completed", handle_client_ready)
-  connect_signal("spawn::canceled", handle_client_failed)
-  connect_signal("spawn::timeout", handle_client_failed)
+  awesome.connect_signal("spawn::completed", handle_client_ready)
+  awesome.connect_signal("spawn::canceled", handle_client_failed)
+  awesome.connect_signal("spawn::timeout", handle_client_failed)
   -- Return new bindings.
   return keyboard, mousekey
 end
