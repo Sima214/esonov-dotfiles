@@ -2,6 +2,7 @@ local api = {}
 
 -- WM libs.
 local awful = require("awful")
+local spawn = awful.spawn.spawn
 local gears = require("gears")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
@@ -147,11 +148,39 @@ local waiting_tag_index = nil
 
 -- Handlers for finishing up spawn events.
 local function handle_client_ready(args)
+  print(args.id, waiting_for_id)
   if args.id==waiting_for_id then
-    tag_registry[waiting_tag_index].instance:view_only()
-    waiting_for_id = nil
-    waiting_tag_index = nil
-    print(args.id.." spawned successfully.")
+    -- That tag that was selected.
+    local selected = tag_registry[waiting_tag_index]
+    if type(selected.waiting)=="number" then
+      local next_index = selected.waiting + 1
+      -- Check if next index exists.
+      if selected.spawn_cmd[next_index] then
+        local pid, id = spawn(selected.spawn_cmd[next_index], true)
+        if type(pid)=="number" then
+          selected.waiting = next_index
+          waiting_for_id = id
+          waiting_tag_index = selected.index
+          print(string.format("Tag %s waiting for %s (pid: %i) on id %s [%i/%i]", selected.name, selected.spawn_cmd[next_index], pid, id, next_index, #selected.spawn_cmd))
+        else
+          -- Spawn errored. Error message is stored in pid.
+          print("Could not spawn \""..selected.spawn_cmd.."\": "..pid)
+        end
+      else
+        -- Finish up.
+        selected.waiting = false
+        selected.instance:view_only()
+        waiting_for_id = nil
+        waiting_tag_index = nil
+        print(args.id.." spawned successfully.")
+      end
+    else
+      selected.waiting = false
+      selected.instance:view_only()
+      waiting_for_id = nil
+      waiting_tag_index = nil
+      print(args.id.." spawned successfully.")
+    end
   end
 end
 local function handle_client_failed(args)
@@ -226,17 +255,34 @@ function api.select_tag(tag_id)
   -- Test if tag has any clients.
   if #tag:clients() ~= 0 then
     -- If it has then switch to it.
+    selected.waiting = false
     tag:view_only()
+  elseif selected.waiting then
+    print("Please be patient...")
   elseif selected.spawn_cmd and #selected.spawn_cmd~=0 then
     -- Else start the default program(if any) and switch to it when window is ready.
-    local pid, id = awful.spawn.spawn(selected.spawn_cmd, true)
-    if type(pid)=="number" then
-      waiting_for_id = id
-      waiting_tag_index = selected.index
-      print(string.format("Tag %s waiting for %s (pid: %i) on id %s", selected.name, selected.spawn_cmd, pid, id))
+    if type(selected.spawn_cmd)=="table" then
+      local pid, id = spawn(selected.spawn_cmd[1], true)
+      if type(pid)=="number" then
+        waiting_for_id = id
+        waiting_tag_index = selected.index
+        selected.waiting = 1
+        print(string.format("Tag %s waiting for %s (pid: %i) on id %s [%i/%i]", selected.name, selected.spawn_cmd[1], pid, id, 1, #selected.spawn_cmd))
+      else
+        -- Spawn errored. Error message is stored in pid.
+        print("Could not spawn \""..selected.spawn_cmd.."\": "..pid)
+      end
     else
-      -- Spawn errored. Error message is stored in pid.
-      print("Could not spawn \""..selected.spawn_cmd.."\": "..pid)
+      local pid, id = spawn(selected.spawn_cmd, true)
+      if type(pid)=="number" then
+        waiting_for_id = id
+        waiting_tag_index = selected.index
+        selected.waiting = true
+        print(string.format("Tag %s waiting for %s (pid: %i) on id %s", selected.name, selected.spawn_cmd, pid, id))
+      else
+        -- Spawn errored. Error message is stored in pid.
+        print("Could not spawn \""..selected.spawn_cmd.."\": "..pid)
+      end
     end
   else
     -- There is nothing else to do, so just log this.
