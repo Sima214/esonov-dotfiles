@@ -23,19 +23,25 @@ end
 
 local function on_new_screen(scr)
   print("New screen:", scr.index)
+  -- Create a floating promptbox for each screen.
+  local cmd_prompt = awful.widget.prompt()
+  local cmd_box = wibox({ontop=true, visible=false, opacity=0.7, widget=cmd_prompt,
+                         x=0, y=0, width=4, height=4, screen=scr, type="normal"})
+  scr.cmd_prompt = cmd_prompt
+  scr.cmd_box = cmd_box
   -- Register all the tags.
   tags.init(scr)
   -- Generate the taglist widget.
   local taglist = tags.gen_widget(scr)
+  local taglist_height = select(2, taglist:fit(nil, 128, 128))
   -- TODO: esonovify
-  -- Create a promptbox for each screen
-  scr.mypromptbox = awful.widget.prompt()
   -- Create a tasklist widget.
   scr.mytasklist = awful.widget.tasklist(scr, awful.widget.tasklist.filter.currenttags, awful.button({ }, 1, on_click_task))
-  -- Create the wibox 
-  scr.mywibox = awful.wibar({ position = "top", height = 36, screen = scr })
-  -- Add widgets to the wibox 
-  scr.mywibox:setup {
+  -- Force the tasklist into a fixed size.
+  local wibar_height = taglist_height + tasklist_height
+  -- Create the wibar to holds the 'always visible' widgets.
+  local bar = awful.wibar({ position = "top", height = wibar_height, screen = scr })
+  bar:setup {
     layout = wibox.layout.grid,
     forced_num_cols = 1,
     forced_num_rows = 2,
@@ -46,11 +52,11 @@ local function on_new_screen(scr)
     {
       layout = wibox.layout.fixed.horizontal,
       taglist,
-      scr.mypromptbox,
       awful.widget.keyboardlayout(),
       {
+        -- Constraint systray, as some apps extend over to the tasklist.
         layout = wibox.container.constraint,
-        height = 26,
+        height = taglist_height,
         strategy = "max",
         wibox.widget.systray()
       },
@@ -59,7 +65,6 @@ local function on_new_screen(scr)
     -- Down
     scr.mytasklist
   }
-  -- Floaty test
 end
 
 -- Event registration.

@@ -9,9 +9,10 @@ local beautiful = require("beautiful")
 -- Notification library
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
--- TODO:
+-- Local libraries.
 local tags = require("tags")
 
+-- TODO: esonovify
 -- {{{ Key bindings
 globalkeys = gears.table.join(
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
@@ -36,22 +37,8 @@ globalkeys = gears.table.join(
               {description = "open a terminal", group = "launcher"}),
     awful.key({ modkey, "Control" }, "r", awesome.restart,
               {description = "reload awesome", group = "awesome"}),
-    awful.key({ modkey, "Shift"   }, "q", awesome.quit,
+    awful.key({ modkey, "Control"   }, "q", awesome.quit,
               {description = "quit awesome", group = "awesome"}),
-    -- Prompt
-    awful.key({ modkey },            "r",     function () awful.screen.focused().mypromptbox:run() end,
-              {description = "run prompt", group = "launcher"}),
-
-    awful.key({ modkey }, "x",
-              function ()
-                  awful.prompt.run {
-                    prompt       = "Run Lua code: ",
-                    textbox      = awful.screen.focused().mypromptbox.widget,
-                    exe_callback = awful.util.eval,
-                    history_path = awful.util.get_cache_dir() .. "/history_eval"
-                  }
-              end,
-              {description = "lua execute prompt", group = "awesome"}),
     -- Menubar
     awful.key({ modkey }, "p", function() menubar.show() end,
               {description = "show the menubar", group = "launcher"})
@@ -118,7 +105,41 @@ client.connect_signal("mouse::enter", function(c)
         client.focus = c
     end
 end)
+-- TODO: end
 
--- Set keys
+-- Command prompt control.
+local function enable_cmd_box(scr)
+  print("Showing prompt!")
+  -- Make cmd_box appear (also correct location).
+  awful.placement.next_to_mouse(scr.cmd_box)
+  scr.cmd_box.visible = true
+end
+local function disable_cmd_box(scr)
+  print("Hiding prompt!")
+  -- Make cmd_box disappear (also correct focused client).
+  -- TODO: restore focus?
+  scr.cmd_box.visible = false
+end
+local function simple_prompt(scr)
+  -- Single prompt for launching programs.
+  -- TODO: tracking!
+  print("Enabling simple prompt!")
+  awful.prompt.run({prompt="Shell: ", textbox=scr.cmd_prompt, done_callback=function() disable_cmd_box(scr) end})
+end
+local terminal_box = awful.key({modkey}, "r", function() local scr=awful.screen.focused();enable_cmd_box(scr);simple_prompt(scr) end)
+local lua_box = awful.key({ modkey }, "x",
+          function ()
+                  awful.prompt.run {
+                    prompt       = "Run Lua code: ",
+                    textbox      = awful.screen.focused().mypromptbox.widget,
+                    exe_callback = awful.util.eval,
+                    history_path = awful.util.get_cache_dir() .. "/history_eval"
+          }
+end)
+    globalkeys = gears.table.join(globalkeys, terminal_box, lua_box)
+
+-- Tag keyboard control.
 globalkeys = tags.register_buttons(globalkeys, nil)
+
+-- Register keybinds.
 root.keys(globalkeys)
