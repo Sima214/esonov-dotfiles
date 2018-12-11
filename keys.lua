@@ -110,7 +110,7 @@ end)
 -- Command prompt control.
 local function enable_cmd_box(scr)
   print("Showing prompt!")
-  -- Make cmd_box appear (also correct location).
+  -- Correct location and make cmd_box appear.
   awful.placement.next_to_mouse(scr.cmd_box)
   scr.cmd_box.visible = true
 end
@@ -123,8 +123,8 @@ end
 local function simple_prompt(scr)
   -- Single prompt for launching programs.
   -- TODO: tracking!
-  print("Enabling simple prompt!")
-  awful.prompt.run({prompt="Shell: ", textbox=scr.cmd_prompt, done_callback=function() disable_cmd_box(scr) end})
+  print("Launching simple prompt!")
+  awful.prompt.run({prompt="Shell: ", textbox=scr.cmd_prompt.widget, done_callback=function() disable_cmd_box(scr) end, exe_callback=awful.spawn})
 end
 local terminal_box = awful.key({modkey}, "r", function() local scr=awful.screen.focused();enable_cmd_box(scr);simple_prompt(scr) end)
 local lua_box = awful.key({ modkey }, "x",

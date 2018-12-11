@@ -240,7 +240,7 @@ function api.gen_widget(scr)
   wtl.draw = render_tag
   -- Size calculation.
   function wtl:fit(c, w, h)
-    -- Calculate size from 
+    -- Calculate size.
     local l = #tag_registry
     local h = ICON_SIZE + PADDING*2
     local w = h*l + EXTRA_HORIZONTAL_SPACING*(l-1)
