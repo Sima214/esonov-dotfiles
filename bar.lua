@@ -28,12 +28,14 @@ local function track_prompt(scr)
   local w, h = scr.cmd_prompt.widget:get_preferred_size(scr)
   scr.cmd_box.width = w + 2
   scr.cmd_box.height = h + 2
+  -- Make sure we do not head off-screen.
+  awful.placement.no_offscreen(scr.cmd_box)
 end
 
 local function on_new_screen(scr)
   print("New screen:", scr.index)
   -- Create a floating promptbox for each screen.
-  local cmd_box = wibox({ontop=true, visible=false, opacity=0.7, type="normal",
+  local cmd_box = wibox({ontop=true, visible=false, opacity=0.82, type="normal",
                          x=0, y=0, width=4, height=4, screen=scr})
   local cmd_prompt = awful.widget.prompt()
   cmd_prompt.widget:connect_signal("widget::layout_changed", function(w) track_prompt(scr) end)

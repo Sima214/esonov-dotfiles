@@ -109,34 +109,43 @@ end)
 
 -- Command prompt control.
 local function enable_cmd_box(scr)
-  print("Showing prompt!")
   -- Correct location and make cmd_box appear.
-  awful.placement.next_to_mouse(scr.cmd_box)
+  awful.placement.under_mouse(scr.cmd_box)
   scr.cmd_box.visible = true
 end
 local function disable_cmd_box(scr)
-  print("Hiding prompt!")
   -- Make cmd_box disappear (also correct focused client).
   -- TODO: restore focus?
   scr.cmd_box.visible = false
 end
 local function simple_prompt(scr)
   -- Single prompt for launching programs.
-  -- TODO: tracking!
-  print("Launching simple prompt!")
-  awful.prompt.run({prompt="Shell: ", textbox=scr.cmd_prompt.widget, done_callback=function() disable_cmd_box(scr) end, exe_callback=awful.spawn})
+  -- TODO: tracking of input and command execution!
+  awful.prompt.run({
+                    prompt="$ ", textbox=scr.cmd_prompt.widget,
+                    done_callback=function() disable_cmd_box(scr) end,
+                    exe_callback=awful.spawn
+                  })
 end
-local terminal_box = awful.key({modkey}, "r", function() local scr=awful.screen.focused();enable_cmd_box(scr);simple_prompt(scr) end)
-local lua_box = awful.key({ modkey }, "x",
-          function ()
-                  awful.prompt.run {
-                    prompt       = "Run Lua code: ",
-                    textbox      = awful.screen.focused().mypromptbox.widget,
+local function lua_prompt(scr)
+  -- Access internals of the WM.
+  -- TODO: more functionality
+  awful.prompt.run({
+                    prompt="Lua: ", textbox=scr.cmd_prompt.widget,
+                    done_callback=function() disable_cmd_box(scr) end,
                     exe_callback = awful.util.eval,
                     history_path = awful.util.get_cache_dir() .. "/history_eval"
-          }
-end)
-    globalkeys = gears.table.join(globalkeys, terminal_box, lua_box)
+                  })
+end
+
+local terminal_box = awful.key({modkey}, "r", function() local scr=awful.screen.focused();enable_cmd_box(scr);simple_prompt(scr) end)
+local lua_box = awful.key({modkey}, "l", function() local scr=awful.screen.focused();enable_cmd_box(scr);lua_prompt(scr) end)
+globalkeys = gears.table.join(globalkeys, terminal_box, lua_box)
+
+-- Application shortcuts.
+local screenshot = awful.key({}, "Print", function() awful.spawn("gscreenshot") end)
+local screenshot_direct = awful.key({modkey}, "Print", function() awful.spawn.with_shell("gscreenshot-cli -f "..screenshot_output) end)
+globalkeys = gears.table.join(globalkeys, screenshot, screenshot_direct)
 
 -- Tag keyboard control.
 globalkeys = tags.register_buttons(globalkeys, nil)

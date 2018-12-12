@@ -27,6 +27,7 @@ conf_path = gears.filesystem.get_configuration_dir()
 icons_path = conf_path.."/icons/"
 tags_path = conf_path.."/tags/"
 tasklist_height = 10
+screenshot_output = "~/Storage/archive/screenshots/"
 
 -- Setup the look and feel.
 beautiful.init(gears.filesystem.get_configuration_dir().."/theme.lua")
