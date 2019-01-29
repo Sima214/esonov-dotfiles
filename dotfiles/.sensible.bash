@@ -59,14 +59,14 @@ shopt -s cmdhist
 PROMPT_COMMAND='history -a'
 
 # Huge history. Doesn't appear to slow things down, so why not?
-HISTSIZE=500000
-HISTFILESIZE=100000
+HISTSIZE=2097152
+HISTFILESIZE=268435456
 
 # Avoid duplicate entries
 HISTCONTROL="erasedups:ignoreboth"
 
 # Don't record some commands
-export HISTIGNORE="&:[ ]*:exit:ls:bg:fg:history:clear"
+export HISTIGNORE="&:[ ]*:exit:ls:bg:fg:history:clear:pwd:whoami:reset:?:??:*<?>*:reboot*:shutdown*:alsamixer:free*:df*:dmesg*"
 
 # Use standard ISO 8601 timestamp
 # %F equivalent to %Y-%m-%d

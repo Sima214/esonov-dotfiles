@@ -5,6 +5,8 @@ local naughty = require("naughty")
 require("naughty.dbus")
 -- Native libs.
 local cairo = require("lgi").cairo
+-- Globals.
+AFTER_INIT = {}
 
 -----------------------------------------------------------------
 -- Basic setup to help with debugging.
@@ -89,3 +91,6 @@ assert(loadfile(gears.filesystem.get_configuration_dir().."bar.lua"))()
 
 -- Setup keybinds.
 assert(loadfile(gears.filesystem.get_configuration_dir().."keys.lua"))()
+
+-- Perform any actions deffered after initialization.
+awesome.connect_signal("startup", function() for _, action in ipairs(AFTER_INIT) do action() end end)

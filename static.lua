@@ -31,8 +31,7 @@ screenshot_output = "~/Storage/archive/screenshots/"
 
 -- Setup the look and feel.
 beautiful.init(gears.filesystem.get_configuration_dir().."/theme.lua")
-gears.wallpaper.set("#000000")
-awesome.set_preferred_icon_size(48)
+awesome.set_preferred_icon_size(24)
 -- Lock layout to floating, as we are using a custom solution.
 awful.layout.layouts = { awful.layout.suit.floating }
 

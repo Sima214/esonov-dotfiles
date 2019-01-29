@@ -9,6 +9,9 @@ local beautiful = require("beautiful")
 -- Notification library
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
+-- Bash completion
+local comp = awful.completion
+comp.bashcomp_load("/usr/share/bash-completion/bash_completion")
 -- Local libraries.
 local tags = require("tags")
 
@@ -114,27 +117,26 @@ local function enable_cmd_box(scr)
   scr.cmd_box.visible = true
 end
 local function disable_cmd_box(scr)
-  -- Make cmd_box disappear (also correct focused client).
-  -- TODO: restore focus?
+  -- Make cmd_box disappear.
   scr.cmd_box.visible = false
 end
 local function simple_prompt(scr)
   -- Single prompt for launching programs.
-  -- TODO: tracking of input and command execution!
   awful.prompt.run({
                     prompt="$ ", textbox=scr.cmd_prompt.widget,
                     done_callback=function() disable_cmd_box(scr) end,
-                    exe_callback=awful.spawn
+                    exe_callback=awful.spawn,
+                    completion_callback = comp.shell,
+                    history_path = conf_path.."/shell.hist"
                   })
 end
 local function lua_prompt(scr)
   -- Access internals of the WM.
-  -- TODO: more functionality
   awful.prompt.run({
-                    prompt="Lua: ", textbox=scr.cmd_prompt.widget,
+                    prompt="> ", textbox=scr.cmd_prompt.widget,
                     done_callback=function() disable_cmd_box(scr) end,
                     exe_callback = awful.util.eval,
-                    history_path = awful.util.get_cache_dir() .. "/history_eval"
+                    history_path = conf_path.."/lua.hist"
                   })
 end
 

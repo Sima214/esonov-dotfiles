@@ -59,6 +59,9 @@ theme.menu_submenu_icon = icons_path .. "outline_arrow_right.png"
 theme.menu_height = dpi(16)
 theme.menu_width = dpi(128)
 
+-- Wallpaper.
+gears.wallpaper.set(theme.bg_normal)
+
 -- Icon definitions.
 local themes_path = awesome.themes_path .. "/"
 

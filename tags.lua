@@ -191,6 +191,27 @@ local function handle_client_failed(args)
   end
 end
 
+-- Autostart handler.
+local function autostart()
+  for _, tag in ipairs(tag_registry) do
+    if tag.auto_spawn then
+      if #tag.instance:clients() == 0 then
+        if type(tag.spawn_cmd)=="table" then
+          for i=1, #tag.spawn_cmd do
+            print("Autostart "..tag.name..": "..tag.spawn_cmd[i])
+            spawn(tag.spawn_cmd[i], false)
+          end
+        elseif type(tag.spawn_cmd)=="string" and #tag.spawn_cmd~=0 then
+          print("Autostart "..tag.name..": "..tag.spawn_cmd)
+          spawn(tag.spawn_cmd, false)
+        end
+      else
+        print("Can not autostart "..tag.name.." because it is non empty!")
+      end
+    end
+  end
+end
+
 -- Api.
 function api.init(scr)
   print("Registering tags...")
@@ -230,6 +251,8 @@ function api.init(scr)
   tag_registry[1].instance.selected = true
   -- Setup clients.
   clients.setup(tag_registry)
+  -- Register auto start handler.
+  table.insert(AFTER_INIT, autostart)
 end
 
 function api.gen_widget(scr)
