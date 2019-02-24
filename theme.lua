@@ -38,7 +38,8 @@ theme.notification_width = nil
 theme.notification_height = nil
 theme.notification_margin = nil
 theme.notification_border_color = "#685f77"
-theme.notification_border_border_width = 24
+theme.notification_border_border_width = 2
+theme.notification_icon_size = 48
 theme.notification_border_shape = gears.shape.rounded_bar
 theme.notification_border_opacity = nil
 -- Fix colors of presets notification styles.
@@ -65,8 +66,8 @@ gears.wallpaper.set(theme.bg_normal)
 -- Icon definitions.
 local themes_path = awesome.themes_path .. "/"
 
-theme.titlebar_close_button_normal = themes_path .. "default/titlebar/close_normal.png"
-theme.titlebar_close_button_focus = themes_path .. "default/titlebar/close_focus.png"
+theme.titlebar_close_button_normal = close_icon_path
+theme.titlebar_close_button_focus = close_icon_path
 
 theme.titlebar_maximized_button_normal_inactive = themes_path .. "default/titlebar/maximized_normal_inactive.png"
 theme.titlebar_maximized_button_focus_inactive = themes_path .. "default/titlebar/maximized_focus_inactive.png"

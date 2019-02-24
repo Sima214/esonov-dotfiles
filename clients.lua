@@ -71,7 +71,7 @@ function api.setup(tags)
     },
     {
       rule_any = { type = { "normal", "dialog" } },
-      properties = { titlebars_enabled = true }
+      properties = { titlebars_enabled = false }
     }
   }
   print("Restraining clients...")

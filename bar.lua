@@ -56,7 +56,11 @@ local function on_new_screen(scr)
   local taglist_height = select(2, taglist:fit({}, 128, 128))
   -- TODO: esonovify
   -- Create a tasklist widget.
-  scr.mytasklist = awful.widget.tasklist(scr, awful.widget.tasklist.filter.currenttags, awful.button({ }, 1, on_click_task))
+  local tasklist = awful.widget.tasklist {
+    screen = scr,
+    filter = awful.widget.tasklist.filter.currenttags,
+    buttons = awful.button({ }, 1, on_click_task)
+  }
   -- Force the tasklist into a fixed size.
   local wibar_height = taglist_height + tasklist_height
   -- Create the wibar to holds the 'always visible' widgets.
@@ -70,20 +74,46 @@ local function on_new_screen(scr)
     horizontal_expand = true,
     -- Up
     {
-      layout = wibox.layout.fixed.horizontal,
-      taglist,
-      awful.widget.keyboardlayout(),
+      forced_width = scr.geometry.width,
+      widget = wibox.container.background,
       {
-        -- Constraint systray, as some apps extend over to the tasklist.
-        layout = wibox.container.constraint,
-        height = taglist_height,
-        strategy = "max",
-        wibox.widget.systray()
+        layout = wibox.layout.align.horizontal,
+        {
+          layout = wibox.layout.fixed.horizontal,
+          {
+            markup = "",
+            widget = wibox.widget.textbox
+          }
+          -- TODO: add system monitors
+        },
+        {
+          taglist,
+          widget = wibox.container.place
+        },
+        {
+          awful.widget.keyboardlayout(),
+          {
+            -- Constraint systray, as some apps extend over to the tasklist.
+            layout = wibox.container.constraint,
+            height = taglist_height,
+            strategy = "max",
+            wibox.widget.systray()
+          },
+          wibox.widget.textclock(),
+          -- Client title bar buttons.
+          {
+            image = close_icon_path,
+            resize_allowed = true,
+            forced_height = taglist_height,
+            buttons = awful.button({ }, 1, function(...) client.focus:kill() end),
+            widget = wibox.widget.imagebox
+          },
+          layout = wibox.layout.fixed.horizontal
+        }
       },
-      wibox.widget.textclock()
     },
     -- Down
-    scr.mytasklist
+    tasklist
   }
 end
 
