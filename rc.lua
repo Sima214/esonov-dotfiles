@@ -17,7 +17,12 @@ local function debug_error(err)
 end
 
 function print(...)
-  local msg = table.concat(table.pack(...), " ")
+  local msg = ""
+  t = table.pack(...)
+  for _, o in ipairs(t) do
+    msg = tostring(o).." "
+  end
+  msg = msg:sub(1, -2)
   io.stderr:write(msg)
   io.stderr:write("\n")
   io.stderr:flush()

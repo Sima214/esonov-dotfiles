@@ -197,10 +197,19 @@ local function autostart()
     if tag.auto_spawn then
       if #tag.instance:clients() == 0 then
         if type(tag.spawn_cmd)=="table" then
-          for i=1, #tag.spawn_cmd do
-            print("Autostart "..tag.name..": "..tag.spawn_cmd[i])
-            spawn(tag.spawn_cmd[i], false)
+          local reaction_name = tag.name
+          local reaction_table = tag.spawn_cmd
+          local reaction_index = 0
+          local function reaction()
+            -- Continue reaction.
+            reaction_index = reaction_index + 1
+            if reaction_table[reaction_index] then
+              print("Autostart", reaction_name..":", reaction_table[reaction_index])
+              spawn(reaction_table[reaction_index], false, reaction)
+            end
           end
+          -- Start 'reaction'
+          reaction()
         elseif type(tag.spawn_cmd)=="string" and #tag.spawn_cmd~=0 then
           print("Autostart "..tag.name..": "..tag.spawn_cmd)
           spawn(tag.spawn_cmd, false)
