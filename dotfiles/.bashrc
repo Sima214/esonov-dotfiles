@@ -14,6 +14,7 @@ alias ls='ls --color=auto'
 PS1='\W \$ '
 
 # Fix environment.
+export WINEESYNC=1
 export GPG_TTY=$(tty)
 
 # added by pipx (https://github.com/cs01/pipx)

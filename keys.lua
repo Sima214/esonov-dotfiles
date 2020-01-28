@@ -88,7 +88,8 @@ globalkeys = gears.table.join(globalkeys, terminal_box, lua_box)
 -- Application shortcuts.
 local screenshot = awful.key({}, "Print", function() awful.spawn("gscreenshot") end)
 local screenshot_direct = awful.key({modkey}, "Print", function() awful.spawn.with_shell("gscreenshot-cli -f "..screenshot_output) end)
-globalkeys = gears.table.join(globalkeys, screenshot, screenshot_direct)
+local screenshot_select = awful.key({modkey}, "Insert", function() awful.spawn.with_shell("gscreenshot-cli -s -f "..screenshot_output) end)
+globalkeys = gears.table.join(globalkeys, screenshot, screenshot_direct, screenshot_select)
 
 -- Tag keyboard control.
 globalkeys = tags.register_buttons(globalkeys, nil)
