@@ -7,7 +7,7 @@ local wibox = require("wibox")
 local widget_utils = require("wibox.widget.base")
 local common = awful.widget.common
 -- Theming utilities.
-local dpi = require("beautiful").xresources.apply_dpi
+local layout = require("beautiful").get().bar_layout
 -- Helpers.
 local tags = require("tags")
 
@@ -32,10 +32,18 @@ local function track_prompt(scr)
   awful.placement.no_offscreen(scr.cmd_box)
 end
 
+local global_screen = nil
 local function on_new_screen(scr)
-  print("New screen:", scr.index)
+  -- New screen.
+  print(string.format("New screen: index=%d, width=%d, height=%d", scr.index, scr.geometry.width, scr.geometry.height))
+  if global_screen then
+    debug_error("Only one screen supported per wm instance!")
+    return
+  end
+  global_screen = scr
+  local screen_width, screen_height = scr.geometry.width, scr.geometry.height
   -- Create a floating promptbox for each screen.
-  local cmd_box = wibox({ontop=true, visible=false, opacity=0.82, type="normal",
+  local cmd_box = wibox({ontop=true, visible=false, opacity=0.82, type="dialog",
                          x=0, y=0, width=4, height=4, screen=scr})
   local cmd_prompt = awful.widget.prompt()
   cmd_prompt.widget:connect_signal("widget::layout_changed", function(w) track_prompt(scr) end)
@@ -53,19 +61,80 @@ local function on_new_screen(scr)
   tags.init(scr)
   -- Generate the taglist widget.
   local taglist = tags.gen_widget(scr)
-  local taglist_height = select(2, taglist:fit({}, 128, 128))
-  -- TODO: esonovify
-  -- Create a tasklist widget.
-  local tasklist = awful.widget.tasklist {
+  local taglist_height = select(2, taglist:fit({}, screen_width, screen_height))
+  -- Create the tasklist widget.
+  local tasklist_template = {
+    {
+      {
+        {
+          id = "tasklist_close",
+          widget = wibox.widget.imagebox,
+          image = layout.tasklist_close_button_image,
+          resize = true,
+          forced_height = layout.tasklist_close_button_size,
+          forced_width = layout.tasklist_close_button_size
+        },
+        left   = layout.tasklist_close_margin.left,
+        right  = layout.tasklist_close_margin.right,
+        top    = layout.tasklist_close_margin.top,
+        bottom = layout.tasklist_close_margin.bottom,
+        widget = wibox.container.margin
+      },
+      {
+        {
+          id     = 'icon_role',
+          widget = wibox.widget.imagebox,
+        },
+        id     = "icon_margin_role",
+        left   = layout.tasklist_icon_margin.left,
+        right  = layout.tasklist_icon_margin.right,
+        top    = layout.tasklist_icon_margin.top,
+        bottom = layout.tasklist_icon_margin.bottom,
+        widget = wibox.container.margin
+      },
+      {
+        {
+          id     = "text_role",
+          widget = wibox.widget.textbox,
+        },
+        id     = "text_margin_role",
+        left   = layout.tasklist_title_margin.left,
+        right  = layout.tasklist_title_margin.right,
+        top    = layout.tasklist_title_margin.top,
+        bottom = layout.tasklist_title_margin.bottom,
+        widget = wibox.container.margin
+      },
+      fill_space = true,
+      layout     = wibox.layout.fixed.horizontal
+    },
+    id     = "background_role",
+    widget = wibox.container.background,
+    create_callback = function(w, c)
+      local close_button = w:get_children_by_id("tasklist_close")[1]
+      close_button:connect_signal("mouse::enter", function(w) w.image = layout.tasklist_close_button_hover_image end)
+      close_button:connect_signal("mouse::leave", function(w) w.image = layout.tasklist_close_button_image end)
+      close_button:connect_signal("button::release", function(w, lx, ly, button, mods, r)
+        if button == 1 and #mods == 0 then
+          c:kill()
+        end
+      end)
+    end
+  }
+  scr.tasklist = awful.widget.tasklist {
     screen = scr,
     filter = awful.widget.tasklist.filter.currenttags,
-    buttons = awful.button({ }, 1, on_click_task)
+    buttons = awful.button({}, 1, on_click_task),
+    widget_template = tasklist_template
   }
-  -- Force the tasklist into a fixed size.
-  local wibar_height = taglist_height + tasklist_height
-  -- Create the wibar to holds the 'always visible' widgets.
-  local bar = awful.wibar({ position = "top", height = wibar_height, screen = scr })
-  bar:setup {
+  -- Limit bar height.
+  local wibar_height = taglist_height + layout.tasklist_height
+  -- Create the wibar to hold the 'always visible' widgets.
+  scr.bar = awful.wibar({
+    position = "top",
+    height = wibar_height,
+    screen = scr
+  })
+  scr.bar:setup {
     layout = wibox.layout.grid,
     forced_num_cols = 1,
     forced_num_rows = 2,
@@ -81,10 +150,11 @@ local function on_new_screen(scr)
         {
           layout = wibox.layout.fixed.horizontal,
           {
+            -- TODO: add system monitors
+            id = "placeholder",
             markup = "",
             widget = wibox.widget.textbox
           }
-          -- TODO: add system monitors
         },
         {
           taglist,
@@ -93,19 +163,25 @@ local function on_new_screen(scr)
         {
           awful.widget.keyboardlayout(),
           {
-            -- Constraint systray, as some apps extend over to the tasklist.
+            -- Constraint systray, as some apps extend over to the tasklist area.
             layout = wibox.container.constraint,
             height = taglist_height,
             strategy = "max",
             wibox.widget.systray()
           },
           wibox.widget.textclock(),
-          -- Client title bar buttons.
+          -- Global/Current client title bar buttons.
           {
-            image = close_icon_path,
+            id = "global_close",
+            image = layout.close_image,
             resize_allowed = true,
             forced_height = taglist_height,
-            buttons = awful.button({ }, 1, function(...) client.focus:kill() end),
+            buttons = awful.button({}, 1, nil, function(...)
+              f = client.focus
+              if f then
+                f:kill()
+              end
+            end),
             widget = wibox.widget.imagebox
           },
           layout = wibox.layout.fixed.horizontal
@@ -113,8 +189,15 @@ local function on_new_screen(scr)
       },
     },
     -- Down
-    tasklist
+    scr.tasklist
   }
+  -- Extra events.
+  local global_close = scr.bar:get_children_by_id("global_close")[1]
+  global_close:connect_signal("mouse::enter", function(w) w.image = layout.close_hover_image end)
+  global_close:connect_signal("mouse::leave", function(w) w.image = layout.close_image end)
+
+  -- Report final wibar layout.
+  print(string.format("Wibar: w:%d, h:%d", scr.bar.width, scr.bar.height))
 end
 
 -- Event registration.

@@ -1,12 +1,11 @@
--- Standard awesome library
+-- Standard awesome libraries
 local gears = require("gears")
 -- Notification library
 local naughty = require("naughty")
 require("naughty.dbus")
--- Native libs.
-local cairo = require("lgi").cairo
 -- Globals.
 AFTER_INIT = {}
+old_print = print
 
 -----------------------------------------------------------------
 -- Basic setup to help with debugging.
@@ -17,12 +16,8 @@ local function debug_error(err)
 end
 
 function print(...)
-  local msg = ""
-  t = table.pack(...)
-  for _, o in ipairs(t) do
-    msg = tostring(o).." "
-  end
-  msg = msg:sub(1, -2)
+  local t = table.pack(...)
+  local msg = table.concat(t)
   io.stderr:write(msg)
   io.stderr:write("\n")
   io.stderr:flush()
