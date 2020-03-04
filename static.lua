@@ -14,7 +14,9 @@ editor_cmd = "kitty -e vim"
 modkey = "Mod4"
 conf_path = gears.filesystem.get_configuration_dir()
 icons_path = conf_path.."/icons/"
+icons_cache_path = icons_path.."cache/"
 tags_path = conf_path.."/tags/"
+tags_spawn_timeout_sec = 30
 tasklist_height = 12
 screenshot_output = "~/Storage/archive/media/memories/"
 

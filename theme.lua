@@ -80,4 +80,46 @@ theme.bar_layout = {
     tasklist_close_button_size = dpi(14)
 }
 
+-- Tag colors and layout
+theme.tag = {layout = {}, colors = {inactive = {}, active = {}, highlight = {}, bubble = {}}}
+
+theme.tag.layout.icon_size = dpi(24)
+theme.tag.layout.padding = 1
+theme.tag.layout.spacing = dpi(8)
+theme.tag.layout.halo_scale = 1.08
+theme.tag.layout.default_cursor = "left_ptr"
+theme.tag.layout.hover_cursor = "hand1"
+theme.tag.layout.invalid_cursor = "left_ptr"
+theme.tag.layout.locked_cursor = "circle"
+
+-- Same as the background.
+theme.tag.colors.inactive["000000"] = "#2e293a"
+theme.tag.colors.active["000000"] = "#2e293a"
+theme.tag.colors.highlight["000000"] = "#2e293a"
+-- The base color.
+theme.tag.colors.inactive["ffffff"] = "#8c80a4"
+theme.tag.colors.active["ffffff"] = "#cac8d1"
+theme.tag.colors.highlight["ffffff"] = "#cac8d1"
+-- Highlight color pattern #1.
+-- It is invisible when inactive, and pulsating when urgent.
+theme.tag.colors.inactive["ff0000"] = "#2e293a"
+theme.tag.colors.active["ff0000"] = "#4629bb"
+theme.tag.colors.highlight["ff0000"] = "#2a00c1"
+-- Highlight color pattern #2.
+-- Visible even when inactive, but darker.
+theme.tag.colors.inactive["00ff00"] = "#292089"
+theme.tag.colors.active["00ff00"] = "#4629bb"
+theme.tag.colors.highlight["00ff00"] = "#2a00c1"
+-- Highlight color pattern #3.
+-- Constant color(may add blur when urgent), just a bit darker when inactive.
+theme.tag.colors.inactive["0000ff"] = "#292089"
+theme.tag.colors.active["0000ff"] = "#4629bb"
+theme.tag.colors.highlight["0000ff"] = "#4629bb"
+
+theme.tag.colors.bubble.locked = "#ffd700"
+theme.tag.colors.bubble.waiting = ""
+theme.tag.colors.bubble.inactive = ""
+theme.tag.colors.bubble.active = ""
+
+
 return theme

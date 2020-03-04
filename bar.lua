@@ -60,8 +60,8 @@ local function on_new_screen(scr)
   -- Register all the tags.
   tags.init(scr)
   -- Generate the taglist widget.
-  local taglist = tags.gen_widget(scr)
-  local taglist_height = select(2, taglist:fit({}, screen_width, screen_height))
+  scr.taglist = tags.gen_widget(scr)
+  local taglist_height = select(2, scr.taglist:fit({}, screen_width, screen_height))
   -- Create the tasklist widget.
   local tasklist_template = {
     {
@@ -157,7 +157,7 @@ local function on_new_screen(scr)
           }
         },
         {
-          taglist,
+          scr.taglist,
           widget = wibox.container.place
         },
         {
@@ -195,7 +195,27 @@ local function on_new_screen(scr)
   local global_close = scr.bar:get_children_by_id("global_close")[1]
   global_close:connect_signal("mouse::enter", function(w) w.image = layout.close_hover_image end)
   global_close:connect_signal("mouse::leave", function(w) w.image = layout.close_image end)
-
+  local last_x, last_y = -1, -1
+  -- Awesome does not distribute mouse::move events to widgets automatically, so we do this ourselves.
+  scr.bar:connect_signal("mouse::move", function(wibox, x, y)
+    -- By default we receive mouse events as fast as possible, so we rate limit them here.
+    if last_x == x and last_y == y then
+      return
+    else
+      last_x = x
+      last_y = y
+    end
+    local widgets = wibox:find_widgets(x, y)
+    for _, wt in ipairs(widgets) do
+      local w = wt.widget
+      if w and w._on_mouse_move then
+        -- Stop on the first one which returns true.
+        if w:_on_mouse_move(x - wt.x, y - wt.y) then
+          return
+        end
+      end
+    end
+  end)
   -- Report final wibar layout.
   print(string.format("Wibar: w:%d, h:%d", scr.bar.width, scr.bar.height))
 end

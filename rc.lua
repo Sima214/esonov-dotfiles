@@ -94,3 +94,5 @@ assert(loadfile(gears.filesystem.get_configuration_dir().."keys.lua"))()
 
 -- Perform any actions deffered after initialization.
 awesome.connect_signal("startup", function() for _, action in ipairs(AFTER_INIT) do action() end end)
+
+-- TODO: client force close, borderless, tag locking
