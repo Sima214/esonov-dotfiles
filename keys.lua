@@ -22,10 +22,6 @@ globalkeys = gears.table.join(
               {description="Show help.", group="awesome"}),
     awful.key({ modkey, "Control" }, "Escape", function() touch("~/no_gui"); awesome.quit() end,
               {description = "Exit awesome.", group = "awesome"}),
-    awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
-              {description = "Switch to the previous tag.", group = "tag"}),
-    awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
-              {description = "Switch to the next tag.", group = "tag"}),
     awful.key({ modkey,           }, "Tab",
         function ()
             client.focus = awful.client.next(1)
@@ -41,10 +37,7 @@ globalkeys = gears.table.join(
     awful.key({ modkey, "Control" }, "r", awesome.restart,
               {description = "reload awesome", group = "awesome"}),
     awful.key({ modkey, "Control"   }, "q", awesome.quit,
-              {description = "quit awesome", group = "awesome"}),
-    -- Menubar
-    awful.key({ modkey }, "p", function() menubar.show() end,
-              {description = "show the menubar", group = "launcher"})
+              {description = "quit awesome", group = "awesome"})
 )
 
 -- {{{ Signals

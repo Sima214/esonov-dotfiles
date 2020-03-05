@@ -2,6 +2,7 @@
 local awful = require("awful")
 local gears = require("gears")
 local menubar = require("menubar")
+local naughty = require("naughty")
 -- Widgets
 local wibox = require("wibox")
 local widget_utils = require("wibox.widget.base")
@@ -116,6 +117,14 @@ local function on_new_screen(scr)
       close_button:connect_signal("button::release", function(w, lx, ly, button, mods, r)
         if button == 1 and #mods == 0 then
           c:kill()
+        end
+        if #mods == 1 and mods[1] == modkey and button == 3 then
+          -- Force kill client.
+          awful.spawn.easy_async_with_shell(string.format("kill -9 %d", c.pid), function(_, _, _, exitcode)
+            if exitcode ~= 0 then
+              naughty.notify({text=string.format("Couldn't kill client with pid %d", c.pid)})
+            end
+          end)
         end
       end)
     end

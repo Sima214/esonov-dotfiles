@@ -9,6 +9,8 @@ local beautiful = require("beautiful")
 local screen = awful.screen
 -- Native libs.
 local cairo = require("lgi").cairo
+local pango = require("lgi").Pango
+local pangocairo = require("lgi").PangoCairo
 -- Helpers.
 local clients = require("clients")
 -- Extra libs.
@@ -19,6 +21,8 @@ local layout = beautiful.get().tag.layout
 local colors_inactive = beautiful.get().tag.colors.inactive
 local colors_active = beautiful.get().tag.colors.active
 local colors_highlight = beautiful.get().tag.colors.highlight
+local colors_halo = beautiful.get().tag.colors.halo
+local colors_bubble = beautiful.get().tag.colors.bubble
 
 -- Lookup tables.
 local LAYOUT_STR2OBJ = {
@@ -32,6 +36,11 @@ local LAYOUT_STR2OBJ = {
 
 -- Internal state.
 local tag_registry = {}
+-- Client grabbing state.
+local waiting_for_id = nil
+local waiting_tag_index = nil
+local waiting_timestamp = os.time()
+
 
 -- Private functions.
 local function svg_scaled_surface(name, data, revision, width, height)
@@ -63,7 +72,12 @@ local function generate_icon_set(is, as, hs)
   -- 0. Generate outline/halo.
   local halo = cairo.ImageSurface.create(cairo.Format.ARGB32, icon_size, icon_size)
   local cr = cairo.Context.create(halo)
-  cr:set_source_rgb(color2rgb(beautiful.bg_focus))
+  cr:set_source_rgba(color2rgba(colors_halo.inactive))
+  cr:scale(layout.halo_scale, layout.halo_scale)
+  cr:mask_surface(is, layout.padding, layout.padding)
+  local halo_active = cairo.ImageSurface.create(cairo.Format.ARGB32, icon_size, icon_size)
+  local cr = cairo.Context.create(halo_active)
+  cr:set_source_rgba(color2rgba(colors_halo.active))
   cr:scale(layout.halo_scale, layout.halo_scale)
   cr:mask_surface(is, layout.padding, layout.padding)
   -- 1. Generate inactive icon.
@@ -124,7 +138,7 @@ local function generate_icon_set(is, as, hs)
   cr:set_source_rgb(color2rgb(beautiful.bg_normal))
   cr:rectangle(0, 0, icon_size, icon_size)
   cr:fill()
-  cr:set_source_surface(halo, 0, 0)
+  cr:set_source_surface(halo_active, 0, 0)
   cr:paint()
   cr:set_source_surface(as, layout.padding, layout.padding)
   cr:paint()
@@ -134,7 +148,7 @@ local function generate_icon_set(is, as, hs)
   cr:set_source_rgb(color2rgb(beautiful.bg_focus))
   cr:rectangle(0, 0, icon_size, icon_size)
   cr:fill()
-  cr:set_source_surface(halo, 0, 0)
+  cr:set_source_surface(halo_active, 0, 0)
   cr:paint()
   cr:set_source_surface(as, layout.padding, layout.padding)
   cr:paint()
@@ -160,7 +174,7 @@ local function generate_icon_set(is, as, hs)
   cr:set_source_rgb(color2rgb(beautiful.bg_normal))
   cr:rectangle(0, 0, icon_size, icon_size)
   cr:fill()
-  cr:set_source_surface(halo, 0, 0)
+  cr:set_source_surface(halo_active, 0, 0)
   cr:paint()
   cr:set_source_surface(hs, layout.padding, layout.padding)
   cr:paint()
@@ -170,7 +184,7 @@ local function generate_icon_set(is, as, hs)
   cr:set_source_rgb(color2rgb(beautiful.bg_focus))
   cr:rectangle(0, 0, icon_size, icon_size)
   cr:fill()
-  cr:set_source_surface(halo, 0, 0)
+  cr:set_source_surface(halo_active, 0, 0)
   cr:paint()
   cr:set_source_surface(hs, layout.padding, layout.padding)
   cr:paint()
@@ -200,11 +214,26 @@ local function preload_resources()
   end
 end
 
+
+
+--- Ported from textbox
+local function setup_text_layout(box, width, height, dpi)
+  box.bubble_text_layout.width = pango.units_from_double(width)
+  box.bubble_text_layout.height = pango.units_from_double(height)
+  assert(dpi, "No DPI provided")
+  if box._dpi ~= dpi then
+      box._dpi = dpi
+      box.bubble_text_context:set_resolution(dpi)
+      box.bubble_text_layout:context_changed()
+  end
+end
+
 -- Tag Renderer.
 -- ct constains wibox, drawable, dpi and screen.
 -- cr is the cairo context.
 local function render_tag(self, ct, cr, w, h)
   -- print("Rendering")
+  setup_text_layout(self, w, h, ct.dpi)
   -- First prepare the cairo context.
   for i, tag in ipairs(tag_registry) do
     -- Size of main icon plus padding.
@@ -235,14 +264,35 @@ local function render_tag(self, ct, cr, w, h)
     -- Render.
     cr:set_source_surface(icon, offset, 0)
     cr:paint()
-    -- Client count/lock bubble.
+    -- Client bubble.
+    if tag.locked then
+      cr:set_source_rgba(color2rgba(colors_bubble.locked))
+    elseif tag.instance.selected then
+      cr:set_source_rgba(color2rgba(colors_bubble.selected))
+    elseif client_count ~= 0 then
+      cr:set_source_rgba(color2rgba(colors_bubble.active))
+    elseif i == waiting_tag_index then
+      cr:set_source_rgba(color2rgba(colors_bubble.waiting))
+    else
+      cr:set_source_rgba(color2rgba(colors_bubble.inactive))
+    end
+    cr:arc(offset + layout.bubble_offset_x, layout.bubble_offset_y, layout.bubble_radius, 0.0, math.pi*2.0)
+    cr:fill()
+    -- Client count.
+    if client_count ~= 0 or i == waiting_tag_index then
+      self.bubble_text_layout:set_text((i == waiting_tag_index) and '!' or tostring(client_count))
+      cr:update_layout(self.bubble_text_layout)
+      local _, logical = self.bubble_text_layout:get_pixel_extents()
+      if tag.instance.selected then
+        cr:set_source_rgba(color2rgba(colors_bubble.font.selected))
+      else
+        cr:set_source_rgba(color2rgba(colors_bubble.font.active))
+      end
+      cr:move_to(offset + layout.bubble_text_offset_x, layout.bubble_text_offset_y)
+      cr:show_layout(self.bubble_text_layout)
+    end
   end
 end
-
--- Client grabbing state.
-local waiting_for_id = nil
-local waiting_tag_index = nil
-local waiting_timestamp = os.time()
 
 -- Handlers for finishing up spawn events.
 local function handle_client_ready(args)
@@ -369,6 +419,10 @@ function api.gen_widget(scr)
   -- Define the widget.
   local wtl = wibox.widget.base.make_widget()
   wtl.draw = render_tag
+  -- Prepare bubble text rendering.
+  wtl.bubble_text_context = pangocairo.font_map_get_default():create_context()
+  wtl.bubble_text_layout = pango.Layout.new(wtl.bubble_text_context)
+  wtl.bubble_text_layout:set_font_description(beautiful.get_font(layout.bubble_font))
   -- Size calculation.
   function wtl:fit(c, w, h)
     -- Calculate size.
@@ -432,7 +486,9 @@ function api.gen_widget(scr)
       end
       -- Right mouse click locks.
       if button == 3 then
+        print(string.format("Tag's %d lock toogled.", tag.index))
         tag.locked = not tag.locked
+        scr.bar.cursor = tag.locked and layout.locked_cursor or (tag.instance.selected and layout.invalid_cursor or layout.hover_cursor)
       end
     end
   end)
@@ -474,6 +530,7 @@ function api.select_tag(tag_id)
         selected.waiting = 1
         waiting_timestamp = os.time()
         print(string.format("Tag %s waiting for %s (pid: %i) on id %s [%i/%i]", selected.name, selected.spawn_cmd[1], pid, id, 1, #selected.spawn_cmd))
+        tag.screen.taglist:_redraw()
         return true
       else
         -- Spawn errored. Error message is stored in pid.
@@ -488,6 +545,7 @@ function api.select_tag(tag_id)
         selected.waiting = true
         waiting_timestamp = os.time()
         print(string.format("Tag %s waiting for %s (pid: %i) on id %s", selected.name, selected.spawn_cmd, pid, id))
+        tag.screen.taglist:_redraw()
         return true
       else
         -- Spawn errored. Error message is stored in pid.
@@ -507,9 +565,44 @@ function api.register_buttons(keyboard, mousekey)
   for _, obj in ipairs(tag_registry) do
     local new_key = awful.key({modkey}, obj.key, function()
       api.select_tag(obj.index)
-    end)
+    end,
+    {description=string.format("Switch to %s", obj.name), group="Tag"})
     keyboard = gears.table.join(keyboard, new_key)
   end
+  local tag_left_key = awful.key({modkey}, "Left", function()
+                                    local current = tag_registry[awful.screen.focused().selected_tag.name]
+                                    local previous_index = ((current.index + (#tag_registry - 2)) % #tag_registry) + 1
+                                    local previous = tag_registry[previous_index]
+                                    while previous_index ~= current.index do
+                                      if #previous.instance:clients() ~= 0 then
+                                        previous.instance:view_only()
+                                        return
+                                      end
+                                      -- Prepare for next iteration.
+                                      previous_index = ((previous.index + (#tag_registry - 2)) % #tag_registry) + 1
+                                      previous = tag_registry[previous_index]
+                                    end
+                                  end,
+                                 {description = "Switch to the previous active tag.", group = "Tag"}
+                                )
+  local tag_right_key = awful.key({modkey}, "Right", function()
+                                    local current = tag_registry[awful.screen.focused().selected_tag.name]
+                                    local next_index = (current.index % #tag_registry) + 1
+                                    local next = tag_registry[next_index]
+                                    while next_index ~= current.index do
+                                      if #next.instance:clients() ~= 0 then
+                                        next.instance:view_only()
+                                        return
+                                      end
+                                      -- Prepare for next iteration.
+                                      next_index = (next.index % #tag_registry) + 1
+                                      next = tag_registry[next_index]
+                                    end
+                                  end,
+                                  {description = "Switch to the next active tag.", group = "Tag"}
+                                 )
+  
+  keyboard = gears.table.join(keyboard, tag_left_key, tag_right_key)
   -- Register general handlers.
   awesome.connect_signal("spawn::completed", handle_client_ready)
   awesome.connect_signal("spawn::canceled", handle_client_failed)

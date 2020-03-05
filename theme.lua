@@ -73,7 +73,7 @@ theme.bar_layout = {
     close_hover_image = icons_path.."close_hover.png",
     tasklist_height = dpi(14),
     tasklist_icon_margin = {left = dpi(2), right = dpi(3), up = 1, bottom = 1},
-    tasklist_title_margin = {left = dpi(3), right = dpi(4), up = 0, bottom = 0},
+    tasklist_title_margin = {left = dpi(3), right = dpi(4), up = 0, bottom = dpi(2)},
     tasklist_close_margin = {left = dpi(4), right = dpi(2), up = 0, bottom = 0},
     tasklist_close_button_image = icons_path.."tasklist_close.png",
     tasklist_close_button_hover_image = icons_path.."tasklist_close_hover.png",
@@ -87,6 +87,12 @@ theme.tag.layout.icon_size = dpi(24)
 theme.tag.layout.padding = 1
 theme.tag.layout.spacing = dpi(8)
 theme.tag.layout.halo_scale = 1.08
+theme.tag.layout.bubble_offset_x = dpi(20)
+theme.tag.layout.bubble_offset_y = dpi(20)
+theme.tag.layout.bubble_text_offset_x = dpi(17)
+theme.tag.layout.bubble_text_offset_y = dpi(15)
+theme.tag.layout.bubble_radius = 5
+theme.tag.layout.bubble_font = "Hack Bold 6"
 theme.tag.layout.default_cursor = "left_ptr"
 theme.tag.layout.hover_cursor = "hand1"
 theme.tag.layout.invalid_cursor = "left_ptr"
@@ -116,10 +122,19 @@ theme.tag.colors.inactive["0000ff"] = "#292089"
 theme.tag.colors.active["0000ff"] = "#4629bb"
 theme.tag.colors.highlight["0000ff"] = "#4629bb"
 
-theme.tag.colors.bubble.locked = "#ffd700"
-theme.tag.colors.bubble.waiting = ""
-theme.tag.colors.bubble.inactive = ""
-theme.tag.colors.bubble.active = ""
+theme.tag.colors.bubble.locked = "#ffd700aa"
+theme.tag.colors.bubble.waiting = "#d6820699"
+theme.tag.colors.bubble.inactive = "#2e293a66"
+theme.tag.colors.bubble.active = "#5b4965cc"
+theme.tag.colors.bubble.selected = "#362f43ff"
+theme.tag.colors.bubble.font = {
+    active="#ffffffaa",
+    selected="#ffffff99"
+}
 
+theme.tag.colors.halo = {
+    inactive="#8c80a4cc",
+    active="#cac8d1aa"
+}
 
 return theme

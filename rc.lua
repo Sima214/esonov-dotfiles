@@ -67,7 +67,7 @@ end
 
 -- theme color to cairo rgb
 function color2rgb(color)
-  local r, g, b = 0.0, 0.0, 0.0
+  local r, g, b
   local rgb = tonumber("0x"..color:match("#(%x+)"))
   b = (rgb&0xff)/0xff
   rgb = rgb>>8
@@ -75,6 +75,18 @@ function color2rgb(color)
   rgb = rgb>>8
   r = (rgb&0xff)/0xff
   return r, g, b
+end
+function color2rgba(color)
+  local r, g, b, a
+  local rgba = tonumber("0x"..color:match("#(%x+)"))
+  a = (rgba&0xff)/0xff
+  rgba = rgba>>8
+  b = (rgba&0xff)/0xff
+  rgba = rgba>>8
+  g = (rgba&0xff)/0xff
+  rgba = rgba>>8
+  r = (rgba&0xff)/0xff
+  return r, g, b, a
 end
 
 -- Create an empty file (touch).
@@ -95,4 +107,4 @@ assert(loadfile(gears.filesystem.get_configuration_dir().."keys.lua"))()
 -- Perform any actions deffered after initialization.
 awesome.connect_signal("startup", function() for _, action in ipairs(AFTER_INIT) do action() end end)
 
--- TODO: client force close, borderless, tag locking
+-- TODO: client force close, borderless, optimize cairo colors, clipboard manager, clean up tag autostart code, novideo switcher, launcher, tasklist no special characters and no bottom character cutting.
