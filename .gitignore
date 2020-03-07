@@ -3,3 +3,5 @@ cache
 *.log
 *.txt
 *.hist
+*.S
+luac.out

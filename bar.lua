@@ -11,6 +11,7 @@ local common = awful.widget.common
 local layout = require("beautiful").get().bar_layout
 -- Helpers.
 local tags = require("tags")
+local launcher = require("launcher")
 
 -- Event handlers.
 -- Taskbar which behaves more like a tab.
@@ -19,7 +20,6 @@ local function on_click_task(c)
     c.minimized = false
     client.focus = c
     c:raise()
-    print("Selected "..client2string(c))
   end
 end
 
@@ -62,7 +62,9 @@ local function on_new_screen(scr)
   tags.init(scr)
   -- Generate the taglist widget.
   scr.taglist = tags.gen_widget(scr)
+  launcher.register_taglist(scr.taglist)
   local taglist_height = select(2, scr.taglist:fit({}, screen_width, screen_height))
+  -- TODO: merge with clients
   -- Create the tasklist widget.
   local tasklist_template = {
     {

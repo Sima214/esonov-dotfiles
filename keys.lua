@@ -14,35 +14,23 @@ local comp = awful.completion
 comp.bashcomp_load("/usr/share/bash-completion/bash_completion")
 -- Local libraries.
 local tags = require("tags")
+local launcher = require("launcher")
+local clients = require("clients")
 
--- TODO: esonovify
--- {{{ Key bindings
+-- Generic key bindings.
+local function awesome_permanent_quit()
+  touch("~/no_gui")
+  awesome.quit()
+end
+
 globalkeys = gears.table.join(
-    awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
-              {description="Show help.", group="awesome"}),
-    awful.key({ modkey, "Control" }, "Escape", function() touch("~/no_gui"); awesome.quit() end,
-              {description = "Exit awesome.", group = "awesome"}),
-    awful.key({ modkey,           }, "Tab",
-        function ()
-            client.focus = awful.client.next(1)
-            if client.focus then
-                client.focus:raise()
-            end
-        end,
-        {description = "Switch between clients.", group = "client"}),
-
-    -- Standard program
-    awful.key({ modkey,           }, "Return", function () awful.spawn(terminal) end,
-              {description = "open a terminal", group = "launcher"}),
-    awful.key({ modkey, "Control" }, "r", awesome.restart,
-              {description = "reload awesome", group = "awesome"}),
-    awful.key({ modkey, "Control"   }, "q", awesome.quit,
-              {description = "quit awesome", group = "awesome"})
+    awful.key({modkey}, "s", hotkeys_popup.show_help, {description="Show help.", group="awesome"}),
+    awful.key({modkey, "Control"}, "Escape", awesome_permanent_quit, {description = "Exit awesome.", group = "awesome"}),
+    awful.key({modkey, "Control"}, "r", awesome.restart, {description = "reload awesome", group = "awesome"}),
+    awful.key({modkey, "Control"}, "q", awesome.quit, {description = "quit awesome", group = "awesome"}),
+    -- Standard programs
+    awful.key({modkey}, "Return", function() awful.spawn(terminal) end, {description = "Open a terminal.", group = "Command prompt"})
 )
-
--- {{{ Signals
-
--- TODO: end
 
 -- Command prompt control.
 local function enable_cmd_box(scr)
@@ -50,10 +38,12 @@ local function enable_cmd_box(scr)
   awful.placement.under_mouse(scr.cmd_box)
   scr.cmd_box.visible = true
 end
+
 local function disable_cmd_box(scr)
   -- Make cmd_box disappear.
   scr.cmd_box.visible = false
 end
+
 local function simple_prompt(scr)
   -- Single prompt for launching programs.
   awful.prompt.run({
@@ -64,6 +54,7 @@ local function simple_prompt(scr)
                     history_path = conf_path.."/shell.hist"
                   })
 end
+
 local function lua_prompt(scr)
   -- Access internals of the WM.
   awful.prompt.run({
@@ -74,8 +65,20 @@ local function lua_prompt(scr)
                   })
 end
 
-local terminal_box = awful.key({modkey}, "r", function() local scr=awful.screen.focused();enable_cmd_box(scr);simple_prompt(scr) end)
-local lua_box = awful.key({modkey}, "l", function() local scr=awful.screen.focused();enable_cmd_box(scr);lua_prompt(scr) end)
+local function trigger_simple_prompt()
+  local scr = awful.screen.focused()
+  enable_cmd_box(scr)
+  simple_prompt(scr)
+end
+
+local function trigger_lua_prompt()
+  local scr = awful.screen.focused()
+  enable_cmd_box(scr)
+  lua_prompt(scr)
+end
+
+local terminal_box = awful.key({modkey}, "r", trigger_simple_prompt, {description = "Open a shell prompt.", group = "Command prompt"})
+local lua_box = awful.key({modkey}, "l", trigger_lua_prompt, {description = "Open a lua prompt.", group = "Command prompt"})
 globalkeys = gears.table.join(globalkeys, terminal_box, lua_box)
 
 -- Application shortcuts.
@@ -85,7 +88,9 @@ local screenshot_select = awful.key({modkey}, "Insert", function() awful.spawn.w
 globalkeys = gears.table.join(globalkeys, screenshot, screenshot_direct, screenshot_select)
 
 -- Tag keyboard control.
-globalkeys = tags.register_buttons(globalkeys, nil)
+globalkeys = tags.register_buttons(globalkeys)
+globalkeys = launcher.register_buttons(globalkeys)
+globalkeys = clients.register_buttons(globalkeys)
 
 -- Register keybinds.
 root.keys(globalkeys)

@@ -2,19 +2,19 @@ local api = {}
 
 -- WM libs.
 local awful = require("awful")
-local spawn = awful.spawn.spawn
 local gears = require("gears")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
 local screen = awful.screen
 -- Native libs.
-local cairo = require("lgi").cairo
-local pango = require("lgi").Pango
-local pangocairo = require("lgi").PangoCairo
+local lgi = require("lgi")
+local cairo = lgi.cairo
+local pango = lgi.Pango
+local pangocairo = lgi.PangoCairo
 -- Helpers.
 local clients = require("clients")
 -- Extra libs.
-local lfs = assert(require("lfs"), "Please install Lua File System!")
+local lfs = require("lfs")
 
 -- Settings.
 local layout = beautiful.get().tag.layout
@@ -36,11 +36,9 @@ local LAYOUT_STR2OBJ = {
 
 -- Internal state.
 local tag_registry = {}
--- Client grabbing state.
-local waiting_for_id = nil
-local waiting_tag_index = nil
-local waiting_timestamp = os.time()
 
+-- Export internal state.
+api.registry = tag_registry
 
 -- Private functions.
 local function svg_scaled_surface(name, data, revision, width, height)
@@ -66,128 +64,66 @@ local function svg_scaled_surface(name, data, revision, width, height)
   end
 end
 
-local function generate_icon_set(is, as, hs)
-  local icon_size = layout.icon_size + layout.padding*2
+local function generate_halo(icon_size, shape, color)
+  local ret = cairo.ImageSurface.create(cairo.Format.ARGB32, icon_size, icon_size)
+  local cr = cairo.Context.create(ret)
+  cr:set_source_rgba(color2rgba(color))
+  cr:scale(layout.halo_scale, layout.halo_scale)
+  cr:mask_surface(shape, layout.padding, layout.padding)
+  return ret
+end
+
+-- Creates a cairo surface and context of the given size and clears with default background color.
+local function generate_icon_cairo_base(color, w, h)
+  h = h or w
+  local surface = cairo.ImageSurface.create(cairo.Format.RGB32, w, h)
+  local cr = cairo.Context.create(surface)
+  cr:set_source_rgb(color2rgb(color))
+  cr:rectangle(0, 0, w, h)
+  cr:fill()
+  return surface, cr
+end
+
+-- Apply a surface on a cairo context.
+local function draw_surface(cr, surface, offset_x, offset_y)
+  cr:set_source_surface(surface, offset_x, offset_y or offset_x)
+  cr:paint()
+end
+
+local function generate_icon_set(output_set, name, icon_size, input_surface, halo)
+  -- Normal.
+  local normal, cr = generate_icon_cairo_base(beautiful.bg_normal, icon_size)
+  draw_surface(cr, input_surface, layout.padding)
+  -- Selected.
+  local selected, cr = generate_icon_cairo_base(beautiful.bg_focus, icon_size)
+  draw_surface(cr, input_surface, layout.padding)
+  -- Mouse hover.
+  local hover, cr = generate_icon_cairo_base(beautiful.bg_normal, icon_size)
+  draw_surface(cr, halo, 0)
+  draw_surface(cr, input_surface, layout.padding)
+  -- Selected and hover.
+  local selected_hover, cr = generate_icon_cairo_base(beautiful.bg_focus, icon_size)
+  draw_surface(cr, halo, 0)
+  draw_surface(cr, input_surface, layout.padding)
+  -- Store results.
+  output_set[name] = normal
+  output_set.selected[name] = selected
+  output_set.hover[name] = hover
+  output_set.selected.hover[name] = selected_hover
+end
+
+local function generate_icons(inactive_surface, active_surface, highlight_surface)
+  local icon_size = layout.icon_size + layout.padding * 2
   local final_set = {selected = {hover = {}}, hover = {}}
-  -- 0. Generate outline/halo.
-  local halo = cairo.ImageSurface.create(cairo.Format.ARGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(halo)
-  cr:set_source_rgba(color2rgba(colors_halo.inactive))
-  cr:scale(layout.halo_scale, layout.halo_scale)
-  cr:mask_surface(is, layout.padding, layout.padding)
-  local halo_active = cairo.ImageSurface.create(cairo.Format.ARGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(halo_active)
-  cr:set_source_rgba(color2rgba(colors_halo.active))
-  cr:scale(layout.halo_scale, layout.halo_scale)
-  cr:mask_surface(is, layout.padding, layout.padding)
+  -- 0. Generate outline/halos.
+  local halo_inactive = generate_halo(icon_size, inactive_surface, colors_halo.inactive)
+  local halo_active = generate_halo(icon_size, inactive_surface, colors_halo.active)
   -- 1. Generate inactive icon.
-  final_set.inactive = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.inactive)
-  cr:set_source_rgb(color2rgb(beautiful.bg_normal))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(is, layout.padding, layout.padding)
-  cr:paint()
-  -- Selected.
-  final_set.selected.inactive = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.selected.inactive)
-  cr:set_source_rgb(color2rgb(beautiful.bg_focus))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(is, layout.padding, layout.padding)
-  cr:paint()
-  -- Mouse hover.
-  final_set.hover.inactive = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.hover.inactive)
-  cr:set_source_rgb(color2rgb(beautiful.bg_normal))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(halo, 0, 0)
-  cr:paint()
-  cr:set_source_surface(is, layout.padding, layout.padding)
-  cr:paint()
-  -- Selected and hover.
-  final_set.selected.hover.inactive = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.selected.hover.inactive)
-  cr:set_source_rgb(color2rgb(beautiful.bg_focus))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(halo, 0, 0)
-  cr:paint()
-  cr:set_source_surface(is, layout.padding, layout.padding)
-  cr:paint()
+  generate_icon_set(final_set, "inactive", icon_size, inactive_surface, halo_inactive)
   -- 2. Generate active icon.
-  final_set.active = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.active)
-  cr:set_source_rgb(color2rgb(beautiful.bg_normal))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(as, layout.padding, layout.padding)
-  cr:paint()
-  -- Selected.
-  final_set.selected.active = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.selected.active)
-  cr:set_source_rgb(color2rgb(beautiful.bg_focus))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(as, layout.padding, layout.padding)
-  cr:paint()
-  -- Mouse hover.
-  final_set.hover.active = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.hover.active)
-  cr:set_source_rgb(color2rgb(beautiful.bg_normal))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(halo_active, 0, 0)
-  cr:paint()
-  cr:set_source_surface(as, layout.padding, layout.padding)
-  cr:paint()
-  -- Selected and hover.
-  final_set.selected.hover.active = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.selected.hover.active)
-  cr:set_source_rgb(color2rgb(beautiful.bg_focus))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(halo_active, 0, 0)
-  cr:paint()
-  cr:set_source_surface(as, layout.padding, layout.padding)
-  cr:paint()
+  generate_icon_set(final_set, "active", icon_size, active_surface, halo_active)
   -- 3. Generate highlight icon.
-  final_set.highlight = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.highlight)
-  cr:set_source_rgb(color2rgb(beautiful.bg_normal))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(hs, layout.padding, layout.padding)
-  cr:paint()
-  -- Selected.
-  final_set.selected.highlight = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.selected.highlight)
-  cr:set_source_rgb(color2rgb(beautiful.bg_focus))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(hs, layout.padding, layout.padding)
-  cr:paint()
-  -- Mouse hover.
-  final_set.hover.highlight = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.hover.highlight)
-  cr:set_source_rgb(color2rgb(beautiful.bg_normal))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(halo_active, 0, 0)
-  cr:paint()
-  cr:set_source_surface(hs, layout.padding, layout.padding)
-  cr:paint()
-  -- Selected and hover.
-  final_set.selected.hover.highlight = cairo.ImageSurface.create(cairo.Format.RGB32, icon_size, icon_size)
-  local cr = cairo.Context.create(final_set.selected.hover.highlight)
-  cr:set_source_rgb(color2rgb(beautiful.bg_focus))
-  cr:rectangle(0, 0, icon_size, icon_size)
-  cr:fill()
-  cr:set_source_surface(halo_active, 0, 0)
-  cr:paint()
-  cr:set_source_surface(hs, layout.padding, layout.padding)
-  cr:paint()
+  generate_icon_set(final_set, "highlight", icon_size, highlight_surface, halo_active)
   return final_set
 end
 
@@ -203,18 +139,16 @@ local function preload_resources()
       local active = base_icon:gsub("#(%x%x%x%x%x%x)", colors_active)
       local highlight = base_icon:gsub("#(%x%x%x%x%x%x)", colors_highlight)
       -- These methods must succeed for the program to function.
-      local inactive_surface = assert(svg_scaled_surface("inactive_"..tag.name ,inactive, revision, layout.icon_size, layout.icon_size))
-      local active_surface = assert(svg_scaled_surface("active_"..tag.name ,active, revision, layout.icon_size, layout.icon_size))
+      local inactive_surface = assert(svg_scaled_surface("inactive_"..tag.name, inactive, revision, layout.icon_size, layout.icon_size))
+      local active_surface = assert(svg_scaled_surface("active_"..tag.name, active, revision, layout.icon_size, layout.icon_size))
       local highlight_surface = assert(svg_scaled_surface("highlight_"..tag.name, highlight, revision, layout.icon_size, layout.icon_size))
-      tag.icon_set = generate_icon_set(inactive_surface, active_surface, highlight_surface)
+      tag.icon_set = generate_icons(inactive_surface, active_surface, highlight_surface)
     else
-      print("Could not load icon "..tag.icon..". "..msg)
+      print(string.format("Could not load icons for `%s` (%s)!", tag.icon, msg))
     end
-    print("Loaded icons for: "..tag.name)
+    print(string.format("Loaded icons for `%s`.", tag.name))
   end
 end
-
-
 
 --- Ported from textbox
 local function setup_text_layout(box, width, height, dpi)
@@ -232,12 +166,10 @@ end
 -- ct constains wibox, drawable, dpi and screen.
 -- cr is the cairo context.
 local function render_tag(self, ct, cr, w, h)
-  -- print("Rendering")
   setup_text_layout(self, w, h, ct.dpi)
-  -- First prepare the cairo context.
   for i, tag in ipairs(tag_registry) do
     -- Size of main icon plus padding.
-    local slot_size = layout.padding*2 + layout.icon_size
+    local slot_size = layout.padding * 2 + layout.icon_size
     -- Calculate destination offset (top left corner).
     local offset = (i-1)*(slot_size + layout.spacing)
     local iconset = tag.icon_set
@@ -256,7 +188,7 @@ local function render_tag(self, ct, cr, w, h)
     if client_count > 0 then
       icon = iconset.active
       for i, c in ipairs(clients) do
-        if client.urgent then
+        if c.urgent then
           icon = iconset.highlight
         end
       end
@@ -271,7 +203,7 @@ local function render_tag(self, ct, cr, w, h)
       cr:set_source_rgba(color2rgba(colors_bubble.selected))
     elseif client_count ~= 0 then
       cr:set_source_rgba(color2rgba(colors_bubble.active))
-    elseif i == waiting_tag_index then
+    elseif tag.spawning_index then
       cr:set_source_rgba(color2rgba(colors_bubble.waiting))
     else
       cr:set_source_rgba(color2rgba(colors_bubble.inactive))
@@ -279,8 +211,8 @@ local function render_tag(self, ct, cr, w, h)
     cr:arc(offset + layout.bubble_offset_x, layout.bubble_offset_y, layout.bubble_radius, 0.0, math.pi*2.0)
     cr:fill()
     -- Client count.
-    if client_count ~= 0 or i == waiting_tag_index then
-      self.bubble_text_layout:set_text((i == waiting_tag_index) and '!' or tostring(client_count))
+    if client_count ~= 0 or tag.spawning_index then
+      self.bubble_text_layout:set_text(tag.spawning_index and '!' or tostring(client_count))
       cr:update_layout(self.bubble_text_layout)
       local _, logical = self.bubble_text_layout:get_pixel_extents()
       if tag.instance.selected then
@@ -290,82 +222,6 @@ local function render_tag(self, ct, cr, w, h)
       end
       cr:move_to(offset + layout.bubble_text_offset_x, layout.bubble_text_offset_y)
       cr:show_layout(self.bubble_text_layout)
-    end
-  end
-end
-
--- Handlers for finishing up spawn events.
-local function handle_client_ready(args)
-  print(string.format("While waiting for '%s', client '%s' got ready.", waiting_for_id, args.id))
-  if args.id == waiting_for_id then
-    -- That tag that was selected.
-    local selected = tag_registry[waiting_tag_index]
-    if type(selected.waiting)=="number" then
-      local next_index = selected.waiting + 1
-      -- Check if next index exists.
-      if selected.spawn_cmd[next_index] then
-        local pid, id = spawn(selected.spawn_cmd[next_index], true)
-        if type(pid)=="number" then
-          selected.waiting = next_index
-          waiting_for_id = id
-          waiting_tag_index = selected.index
-          waiting_timestamp = os.time()
-          print(string.format("Tag %s waiting for %s (pid: %i) on id %s [%i/%i]", selected.name, selected.spawn_cmd[next_index], pid, id, next_index, #selected.spawn_cmd))
-        else
-          -- Spawn errored. Error message is stored in pid.
-          print(string.format("Could not spawn '%s'(pid:%d)", selected.spawn_cmd, pid))
-        end
-      else
-        -- Finish up.
-        selected.waiting = false
-        selected.instance:view_only()
-        waiting_for_id = nil
-        waiting_tag_index = nil
-        print(args.id.." spawned successfully.")
-      end
-    else
-      selected.waiting = false
-      selected.instance:view_only()
-      waiting_for_id = nil
-      waiting_tag_index = nil
-      print(args.id.." spawned successfully.")
-    end
-  end
-end
-local function handle_client_failed(args)
-  if args.id==waiting_for_id then
-    waiting_for_id = nil
-    waiting_tag_index = nil
-    print("For some reason spawn '"..args.id.."' failed to start.")
-  end
-end
-
--- Autostart handler.
-local function autostart()
-  for _, tag in ipairs(tag_registry) do
-    if tag.auto_spawn then
-      if #tag.instance:clients() == 0 then
-        if type(tag.spawn_cmd)=="table" then
-          local reaction_name = tag.name
-          local reaction_table = tag.spawn_cmd
-          local reaction_index = 0
-          local function reaction()
-            -- Continue reaction.
-            reaction_index = reaction_index + 1
-            if reaction_table[reaction_index] then
-              print("Autostart", reaction_name..":", reaction_table[reaction_index])
-              spawn(reaction_table[reaction_index], false, reaction)
-            end
-          end
-          -- Start 'reaction'
-          reaction()
-        elseif type(tag.spawn_cmd)=="string" and #tag.spawn_cmd~=0 then
-          print("Autostart "..tag.name..": "..tag.spawn_cmd)
-          spawn(tag.spawn_cmd, false)
-        end
-      else
-        print("Can not autostart "..tag.name.." because it is non empty!")
-      end
     end
   end
 end
@@ -408,9 +264,7 @@ function api.init(scr)
   end
   tag_registry[1].instance.selected = true
   -- Setup clients.
-  clients.setup(tag_registry)
-  -- Register auto start handler.
-  table.insert(AFTER_INIT, autostart)
+  clients.setup(scr, tag_registry)
 end
 
 function api.gen_widget(scr)
@@ -423,6 +277,8 @@ function api.gen_widget(scr)
   wtl.bubble_text_context = pangocairo.font_map_get_default():create_context()
   wtl.bubble_text_layout = pango.Layout.new(wtl.bubble_text_context)
   wtl.bubble_text_layout:set_font_description(beautiful.get_font(layout.bubble_font))
+  -- Tooltip
+  wtl._tooltip = awful.tooltip {text = "", visible = false}
   -- Size calculation.
   function wtl:fit(c, w, h)
     -- Calculate size.
@@ -433,6 +289,13 @@ function api.gen_widget(scr)
   end
   function wtl:_redraw(w)
     self:emit_signal("widget::redraw_needed")
+  end
+  function wtl:mouse_effects_clear()
+    -- Reset mouse move triggered stuff when mouse leaves.
+    self._tooltip.visible = false
+    self.hovered_tag = nil
+    scr.bar.cursor = layout.default_cursor
+    self:_redraw()
   end
   function wtl:_on_mouse_move(x, y)
     if y >= layout.padding and y <= (layout.padding + layout.icon_size) then
@@ -446,6 +309,10 @@ function api.gen_widget(scr)
           -- Hit
           if self.hovered_tag ~= tag then
             self.hovered_tag = tag
+            -- Update tooltip.
+            self._tooltip.visible = true
+            self._tooltip.text = tag.tooltip
+            -- Update cursor.
             if tag.locked then
               scr.bar.cursor = layout.locked_cursor
             elseif tag.instance.selected then
@@ -461,31 +328,20 @@ function api.gen_widget(scr)
     end
     -- No hit, reset widget.
     if self.hovered_tag then
-      self.hovered_tag = nil
-      scr.bar.cursor = layout.default_cursor
-      self:_redraw()
+      self:mouse_effects_clear()
     end
   end
   -- Events.
   local function redraw()
     wtl:_redraw()
   end
-  wtl:connect_signal("mouse::leave", function()
-    -- Reset hover status when mouse leaves.
-    wtl.hovered_tag = nil
-    scr.bar.cursor = layout.default_cursor
-    wtl:_redraw()
-  end)
+  wtl:connect_signal("mouse::leave", function() wtl:mouse_effects_clear() end)
   -- Mouse events
-  wtl:connect_signal("button::release", function(w, lx, ly, button, mods, r)
-    if #mods == 0 and w.hovered_tag then
-      tag = w.hovered_tag
-      -- Left mouse click selects.
-      if button == 1 then
-        api.select_tag(tag.index)
-      end
+  wtl:connect_signal("button::press", function(w, lx, ly, button, mods, hits)
+    local tag = w.hovered_tag
+    if #mods == 0 and tag then
       -- Right mouse click locks.
-      if button == 3 then
+      if button == 3 and #tag.instance:clients() == 0 then
         print(string.format("Tag's %d lock toogled.", tag.index))
         tag.locked = not tag.locked
         scr.bar.cursor = tag.locked and layout.locked_cursor or (tag.instance.selected and layout.invalid_cursor or layout.hover_cursor)
@@ -502,113 +358,10 @@ function api.gen_widget(scr)
   return wtl
 end
 
--- Returns true if the request was valid and accepted.
-function api.select_tag(tag_id)
-  local selected = tag_registry[tag_id]
-  local tag = selected.instance
-  -- Test lock.
-  if selected.locked then
-    print("Tag is locked...")
-    return false
-  end
-  -- Test if tag has any clients.
-  if #tag:clients() ~= 0 then
-    -- If it has then switch to it.
-    selected.waiting = false
-    tag:view_only()
-    return true
-  elseif selected.waiting and os.difftime(os.time(), waiting_timestamp) <= tags_spawn_timeout_sec then
-    print("Please be patient...")
-    return false
-  elseif selected.spawn_cmd and #selected.spawn_cmd~=0 then
-    -- Else start the default program(if any) and switch to it when window is ready.
-    if type(selected.spawn_cmd)=="table" then
-      local pid, id = spawn(selected.spawn_cmd[1], true)
-      if type(pid)=="number" then
-        waiting_for_id = id
-        waiting_tag_index = selected.index
-        selected.waiting = 1
-        waiting_timestamp = os.time()
-        print(string.format("Tag %s waiting for %s (pid: %i) on id %s [%i/%i]", selected.name, selected.spawn_cmd[1], pid, id, 1, #selected.spawn_cmd))
-        tag.screen.taglist:_redraw()
-        return true
-      else
-        -- Spawn errored. Error message is stored in pid.
-        print("Could not spawn \""..selected.spawn_cmd.."\": "..pid)
-        return false
-      end
-    else
-      local pid, id = spawn(selected.spawn_cmd, true)
-      if type(pid)=="number" then
-        waiting_for_id = id
-        waiting_tag_index = selected.index
-        selected.waiting = true
-        waiting_timestamp = os.time()
-        print(string.format("Tag %s waiting for %s (pid: %i) on id %s", selected.name, selected.spawn_cmd, pid, id))
-        tag.screen.taglist:_redraw()
-        return true
-      else
-        -- Spawn errored. Error message is stored in pid.
-        print("Could not spawn \""..selected.spawn_cmd.."\": "..pid)
-        return false
-      end
-    end
-  else
-    -- There is nothing else to do, so just log this.
-    print(string.format("Tried starting tag `%s` but no command is configured!", selected.name))
-    return false
-  end
-end
-
-function api.register_buttons(keyboard, mousekey)
+function api.register_buttons(keyboard)
   -- Register keyboard shortcuts.
-  for _, obj in ipairs(tag_registry) do
-    local new_key = awful.key({modkey}, obj.key, function()
-      api.select_tag(obj.index)
-    end,
-    {description=string.format("Switch to %s", obj.name), group="Tag"})
-    keyboard = gears.table.join(keyboard, new_key)
-  end
-  local tag_left_key = awful.key({modkey}, "Left", function()
-                                    local current = tag_registry[awful.screen.focused().selected_tag.name]
-                                    local previous_index = ((current.index + (#tag_registry - 2)) % #tag_registry) + 1
-                                    local previous = tag_registry[previous_index]
-                                    while previous_index ~= current.index do
-                                      if #previous.instance:clients() ~= 0 then
-                                        previous.instance:view_only()
-                                        return
-                                      end
-                                      -- Prepare for next iteration.
-                                      previous_index = ((previous.index + (#tag_registry - 2)) % #tag_registry) + 1
-                                      previous = tag_registry[previous_index]
-                                    end
-                                  end,
-                                 {description = "Switch to the previous active tag.", group = "Tag"}
-                                )
-  local tag_right_key = awful.key({modkey}, "Right", function()
-                                    local current = tag_registry[awful.screen.focused().selected_tag.name]
-                                    local next_index = (current.index % #tag_registry) + 1
-                                    local next = tag_registry[next_index]
-                                    while next_index ~= current.index do
-                                      if #next.instance:clients() ~= 0 then
-                                        next.instance:view_only()
-                                        return
-                                      end
-                                      -- Prepare for next iteration.
-                                      next_index = (next.index % #tag_registry) + 1
-                                      next = tag_registry[next_index]
-                                    end
-                                  end,
-                                  {description = "Switch to the next active tag.", group = "Tag"}
-                                 )
-  
-  keyboard = gears.table.join(keyboard, tag_left_key, tag_right_key)
-  -- Register general handlers.
-  awesome.connect_signal("spawn::completed", handle_client_ready)
-  awesome.connect_signal("spawn::canceled", handle_client_failed)
-  awesome.connect_signal("spawn::timeout", handle_client_failed)
   -- Return new bindings.
-  return keyboard, mousekey
+  return keyboard
 end
 
 return api

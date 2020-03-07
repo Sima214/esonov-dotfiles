@@ -20,11 +20,12 @@ theme.fg_focus = "#dcdae0"
 theme.fg_urgent = "#dcdae0"
 theme.fg_minimize = "#cac8d1"
 
+-- Client settings
 theme.useless_gap = 0
 theme.border_width = 0
-theme.border_normal = "#cc8080"
-theme.border_focus = "#cc8080"
-theme.border_marked = "#cc8080"
+theme.border_normal = theme.bg_normal
+theme.border_focus = theme.bg_focus
+theme.border_marked = theme.bg_focus
 
 -- Prompt box theme.
 theme.prompt_font = "Hack 11"
