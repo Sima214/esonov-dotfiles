@@ -26,6 +26,7 @@ theme.border_width = 0
 theme.border_normal = theme.bg_normal
 theme.border_focus = theme.bg_focus
 theme.border_marked = theme.bg_focus
+theme.tasklist_plain_task_name = true
 
 -- Prompt box theme.
 theme.prompt_font = "Hack 11"

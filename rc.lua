@@ -109,6 +109,7 @@ assert(loadfile(gears.filesystem.get_configuration_dir().."keys.lua"))()
 
 --[[
   TODO:
+    no startup id compensation,
     clipboard manager,
     novideo switcher,
     tag spawn chooser,

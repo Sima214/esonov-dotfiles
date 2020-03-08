@@ -40,20 +40,28 @@ end
 local function tags_launcher_launch(o)
   o.instance.screen.taglist:_redraw()
   tags_set_launcher_state(o, 0, os.time())
+  local waiting_pid = nil
   local function recursive_spawn_chain()
+    if not o.spawning_index then
+      naughty.notify({text = string.format("Removing dangling launcher callback for tag `%s`!", o.name)})
+      o.instance:disconnect_signal("tagged", recursive_spawn_chain)
+      tags_clear_launcher_state(o)
+    end
     for next_index = o.spawning_index+1, #o.spawn_cmd do
       cmd_obj = o.spawn_cmd[next_index]
       if cmd_obj.enabled then
         tags_set_launcher_state(o, next_index, os.time())
         local cmd = cmd_obj.shell and {awful.util.shell, "-c", cmd_obj.cmd} or cmd_obj.cmd
-        spawn(cmd, true, recursive_spawn_chain)
+        waiting_pid = spawn(cmd, true)
         return
       end
     end
     -- No more commands to spawn, reset state.
+    o.instance:disconnect_signal("tagged", recursive_spawn_chain)
     tags_clear_launcher_state(o)
     api.select_tag(o.index, true, true)
   end
+  o.instance:connect_signal("tagged", recursive_spawn_chain)
   recursive_spawn_chain()
 end
 
