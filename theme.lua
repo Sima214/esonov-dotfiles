@@ -2,6 +2,8 @@
 local gears = require("gears")
 local naughty_config = require("naughty").config
 local xresources = require("beautiful.xresources")
+local beautiful = require("beautiful")
+local gtk = beautiful.gtk.get_theme_variables()
 local dpi = xresources.apply_dpi
 
 local theme = {}
@@ -27,6 +29,12 @@ theme.border_normal = theme.bg_normal
 theme.border_focus = theme.bg_focus
 theme.border_marked = theme.bg_focus
 theme.tasklist_plain_task_name = true
+
+-- Titlebar (for dialogs)
+theme.titlebar_bg = "#313131cc"
+theme.titlebar_height = dpi(18)
+theme.titlebar_font = "Roboto 9"
+theme.titlebar_shape = function(cr, w, h) gears.shape.partially_rounded_rect(cr, w, h, true, true, false, false, theme.titlebar_height) end
 
 -- Prompt box theme.
 theme.prompt_font = "Hack 11"
@@ -64,9 +72,9 @@ theme.menu_width = dpi(128)
 -- Wallpaper.
 gears.wallpaper.set(theme.bg_normal)
 
--- Define the icon theme for application icons. If not set then the icons
--- from /usr/share/icons and /usr/share/icons/hicolor will be used.
--- TODO: make it work.
+-- Define the icon theme for application icons.
+-- If not set then the icons from /usr/share/icons and /usr/share/icons/hicolor will be used.
+-- Used only by the menubar as far as I know.
 theme.icon_theme = "Papirus-Dark"
 
 -- Bar layout.

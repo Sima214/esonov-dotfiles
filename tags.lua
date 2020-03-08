@@ -150,7 +150,20 @@ local function preload_resources()
   end
 end
 
---- Ported from textbox
+local function tag_update_lock(tag_obj, update_cursor)
+  local scr = tag_obj.instance.screen
+  if update_cursor then
+    scr.bar.cursor = tag_obj.locked and layout.locked_cursor or (tag_obj.instance.selected and layout.invalid_cursor or layout.hover_cursor)
+  end
+  scr.taglist:_redraw()
+end
+
+local function tag_toogle_lock(tag_obj, update_cursor)
+  tag_obj.locked = not tag_obj.locked
+  tag_update_lock(tag_obj)
+end
+
+-- Ported from textbox
 local function setup_text_layout(box, width, height, dpi)
   box.bubble_text_layout.width = pango.units_from_double(width)
   box.bubble_text_layout.height = pango.units_from_double(height)
@@ -247,6 +260,8 @@ function api.init(scr)
           -- If no layout is set, then set a default one.
           obj.layout = awful.layout.suit
         end
+        -- Methods
+        obj.toogle_lock = tag_toogle_lock
         -- Finalize registration.
         tag_registry[obj.index] = obj
         tag_registry[name] = obj
@@ -312,15 +327,8 @@ function api.gen_widget(scr)
             -- Update tooltip.
             self._tooltip.visible = true
             self._tooltip.text = tag.tooltip
-            -- Update cursor.
-            if tag.locked then
-              scr.bar.cursor = layout.locked_cursor
-            elseif tag.instance.selected then
-              scr.bar.cursor = layout.invalid_cursor
-            else
-              scr.bar.cursor = layout.hover_cursor
-            end
-            self:_redraw()
+            -- Update cursor and redraw.
+            tag_update_lock(tag, true)
           end
           return
         end
@@ -343,8 +351,7 @@ function api.gen_widget(scr)
       -- Right mouse click locks.
       if button == 3 and #tag.instance:clients() == 0 then
         print(string.format("Tag's %d lock toogled.", tag.index))
-        tag.locked = not tag.locked
-        scr.bar.cursor = tag.locked and layout.locked_cursor or (tag.instance.selected and layout.invalid_cursor or layout.hover_cursor)
+        tag_toogle_lock(tag, true)
       end
     end
   end)
@@ -360,6 +367,13 @@ end
 
 function api.register_buttons(keyboard)
   -- Register keyboard shortcuts.
+  for _, obj in ipairs(tag_registry) do
+    local new_key = awful.key({modkey, "Shift"}, obj.key, function()
+      tag_toogle_lock(obj)
+    end,
+    {description=string.format("Toogle lock on %s", obj.name), group="Tag"})
+    keyboard = gears.table.join(keyboard, new_key)
+  end
   -- Return new bindings.
   return keyboard
 end

@@ -11,6 +11,7 @@ local common = awful.widget.common
 local layout = require("beautiful").get().bar_layout
 -- Helpers.
 local tags = require("tags")
+local clients = require("clients")
 local launcher = require("launcher")
 
 -- Event handlers.
@@ -54,7 +55,7 @@ local function on_new_screen(scr)
     right  = 1,
     top    = 1,
     bottom = 1,
-    layout=wibox.container.margin
+    layout = wibox.container.margin
   })
   scr.cmd_prompt = cmd_prompt
   scr.cmd_box = cmd_box
@@ -64,79 +65,8 @@ local function on_new_screen(scr)
   scr.taglist = tags.gen_widget(scr)
   launcher.register_taglist(scr.taglist)
   local taglist_height = select(2, scr.taglist:fit({}, screen_width, screen_height))
-  -- TODO: merge with clients
-  -- Create the tasklist widget.
-  local tasklist_template = {
-    {
-      {
-        {
-          id = "tasklist_close",
-          widget = wibox.widget.imagebox,
-          image = layout.tasklist_close_button_image,
-          resize = true,
-          forced_height = layout.tasklist_close_button_size,
-          forced_width = layout.tasklist_close_button_size
-        },
-        left   = layout.tasklist_close_margin.left,
-        right  = layout.tasklist_close_margin.right,
-        top    = layout.tasklist_close_margin.top,
-        bottom = layout.tasklist_close_margin.bottom,
-        widget = wibox.container.margin
-      },
-      {
-        {
-          id     = 'icon_role',
-          widget = wibox.widget.imagebox,
-        },
-        id     = "icon_margin_role",
-        left   = layout.tasklist_icon_margin.left,
-        right  = layout.tasklist_icon_margin.right,
-        top    = layout.tasklist_icon_margin.top,
-        bottom = layout.tasklist_icon_margin.bottom,
-        widget = wibox.container.margin
-      },
-      {
-        {
-          id     = "text_role",
-          widget = wibox.widget.textbox,
-        },
-        id     = "text_margin_role",
-        left   = layout.tasklist_title_margin.left,
-        right  = layout.tasklist_title_margin.right,
-        top    = layout.tasklist_title_margin.top,
-        bottom = layout.tasklist_title_margin.bottom,
-        widget = wibox.container.margin
-      },
-      fill_space = true,
-      layout     = wibox.layout.fixed.horizontal
-    },
-    id     = "background_role",
-    widget = wibox.container.background,
-    create_callback = function(w, c)
-      local close_button = w:get_children_by_id("tasklist_close")[1]
-      close_button:connect_signal("mouse::enter", function(w) w.image = layout.tasklist_close_button_hover_image end)
-      close_button:connect_signal("mouse::leave", function(w) w.image = layout.tasklist_close_button_image end)
-      close_button:connect_signal("button::release", function(w, lx, ly, button, mods, r)
-        if button == 1 and #mods == 0 then
-          c:kill()
-        end
-        if #mods == 1 and mods[1] == modkey and button == 3 then
-          -- Force kill client.
-          awful.spawn.easy_async_with_shell(string.format("kill -9 %d", c.pid), function(_, _, _, exitcode)
-            if exitcode ~= 0 then
-              naughty.notify({text=string.format("Couldn't kill client with pid %d", c.pid)})
-            end
-          end)
-        end
-      end)
-    end
-  }
-  scr.tasklist = awful.widget.tasklist {
-    screen = scr,
-    filter = awful.widget.tasklist.filter.currenttags,
-    buttons = awful.button({}, 1, on_click_task),
-    widget_template = tasklist_template
-  }
+  -- Generate the tasklist widget.
+  scr.tasklist = clients.gen_widget(scr)
   -- Limit bar height.
   local wibar_height = taglist_height + layout.tasklist_height
   -- Create the wibar to hold the 'always visible' widgets.

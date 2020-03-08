@@ -65,6 +65,17 @@ local function tags_launcher_launch(o)
   recursive_spawn_chain()
 end
 
+-- Implement per tag mouse position.
+local function tags_switch(new_tag_obj)
+  local old_tag_obj = tags.registry[awful.screen.focused().selected_tag.name]
+  old_tag_obj.mouse_coords = mouse.coords()
+  old_tag_obj.mouse_coords.buttons = nil
+  new_tag_obj.instance:view_only()
+  if new_tag_obj.mouse_coords then
+    mouse.coords(new_tag_obj.mouse_coords)
+  end
+end
+
 -- Autostart handler.
 local function autostart()
   for _, tag_obj in ipairs(tags.registry) do
@@ -92,7 +103,7 @@ function api.select_tag(tag_id, quiet, noautostart)
   elseif #tag:clients() ~= 0 then
     -- Test if tag has any clients, if it has switch to it.
     tags_clear_launcher_state(tag_obj)
-    tag:view_only()
+    tags_switch(tag_obj)
     return true
   elseif tag_obj.spawning_index then
     if os.difftime(os.time(), tag_obj.spawn_timestamp) <= tags_spawn_timeout_sec then
