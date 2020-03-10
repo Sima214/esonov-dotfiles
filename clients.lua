@@ -58,7 +58,7 @@ local clientkeys = gears.table.join(
             {description = "Force close focused client.", group = "Clients"})
 )
 
--- Event handlers
+-- Event handlers.
 client.connect_signal("manage", function(c)
   -- Attach extra properties and methods.
   c.borderless = false
@@ -107,6 +107,15 @@ client.connect_signal("request::titlebars", function(c)
     c.shape = theme.titlebar_shape
   end
 end)
+
+-- Taskbar which behaves more like a tab.
+local function on_click_task(c)
+  if c ~= client.focus then
+    c.minimized = false
+    client.focus = c
+    c:raise()
+  end
+end
 
 -- Private functions.
 

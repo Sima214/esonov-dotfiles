@@ -15,15 +15,6 @@ local clients = require("clients")
 local launcher = require("launcher")
 
 -- Event handlers.
--- Taskbar which behaves more like a tab.
-local function on_click_task(c)
-  if c ~= client.focus then
-    c.minimized = false
-    client.focus = c
-    c:raise()
-  end
-end
-
 -- Track prompt size changes.
 local function track_prompt(scr)
   -- Correct size after each layout update.
