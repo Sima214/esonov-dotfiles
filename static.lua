@@ -39,3 +39,6 @@ end
 print("Config path: "..conf_path)
 print("Theme path: "..awesome.themes_path)
 print("Icons path: "..awesome.icon_path)
+
+-- Initialize RNG
+math.randomseed(os.time())
