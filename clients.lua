@@ -251,6 +251,15 @@ function api.register_buttons(keyboard, mousekey)
           end
         end,
         {description = "Switch between clients.", group = "Clients"})
+  for _, obj in ipairs(tags.registry) do
+    local new_key = awful.key({modkey, "Control"}, obj.key, function()
+      if client.focus then
+        client.focus:move_to_tag(obj.instance)
+      end
+    end,
+    {description=string.format("Move focused client to %s", obj.name), group="Clients"})
+    keyboard = gears.table.join(keyboard, new_key)
+  end
   keyboard = gears.table.join(keyboard, switch_key)
   return keyboard, mousekey
 end
