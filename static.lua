@@ -18,7 +18,7 @@ icons_cache_path = icons_path.."cache/"
 tags_path = conf_path.."/tags/"
 tags_spawn_timeout_sec = 30
 tasklist_height = 12
-screenshot_output = "~/Storage/archive/media/memories/"
+screenshot_output = "/home/sima/storage/akashi/nvmedia/memories"
 
 -- Setup the look and feel.
 beautiful.init(conf_path.."/theme.lua")

@@ -104,6 +104,9 @@ assert(loadfile(gears.filesystem.get_configuration_dir().."static.lua"))()
 -- Configure the bars.
 assert(loadfile(gears.filesystem.get_configuration_dir().."bar.lua"))()
 
+-- Use a 3rd party systray volume control
+require("awful").spawn.single_instance("pasystray -i 1 -m 66", {})
+
 -- Setup keybinds.
 assert(loadfile(gears.filesystem.get_configuration_dir().."keys.lua"))()
 

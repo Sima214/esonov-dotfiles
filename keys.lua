@@ -92,5 +92,29 @@ globalkeys = tags.register_buttons(globalkeys)
 globalkeys = launcher.register_buttons(globalkeys)
 globalkeys = clients.register_buttons(globalkeys)
 
+-- Misc
+local function artificial_mouse_click(receiver, x, y, type)
+  print(string.format("Pressing client %i at coords (%i, %i).", receiver.pid, x, y))
+  local old_coords = mouse.coords()
+  awful.spawn(string.format("xdotool mousemove %i %i click 1 mousemove %i %i", x, y, old_coords.x, old_coords.y), false)
+end
+
+local misc_01 = awful.key({modkey, "Shift"}, "t", function()
+  local rng_x = math.random(-15, 15)
+  local rng_y = math.random(-12, 12)
+  artificial_mouse_click(client.focus, 1555 + rng_x, 934 + rng_y)
+end, {description = "Azur Lane Torps", group = "Misc"})
+local misc_02 = awful.key({modkey, "Shift"}, "g", function()
+  local rng_x = math.random(-15, 15)
+  local rng_y = math.random(-12, 12)
+  artificial_mouse_click(client.focus, 1775 + rng_x, 934 + rng_y)
+end, {description = "Azur Lane Arty", group = "Misc"})
+local misc_03 = awful.key({modkey, "Shift"}, "a", function()
+  local rng_x = math.random(-15, 15)
+  local rng_y = math.random(-12, 12)
+  artificial_mouse_click(client.focus, 1375 + rng_x, 934 + rng_y)
+end, {description = "Azur Lane Air", group = "Misc"})
+globalkeys = gears.table.join(globalkeys, misc_01, misc_02, misc_03)
+
 -- Register keybinds.
 root.keys(globalkeys)

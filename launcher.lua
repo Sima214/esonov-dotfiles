@@ -51,8 +51,19 @@ local function tags_launcher_launch(o)
       cmd_obj = o.spawn_cmd[next_index]
       if cmd_obj.enabled then
         tags_set_launcher_state(o, next_index, os.time())
-        local cmd = cmd_obj.shell and {awful.util.shell, "-c", cmd_obj.cmd} or cmd_obj.cmd
-        waiting_pid = spawn(cmd, true)
+        local cmd = nil
+        if cmd_obj.shell then
+          cmd = {awful.util.shell, "-c", cmd_obj.cmd}
+        else
+          -- redirect_cmd = " 1>>/tmp/.awesomewm."..index..".log 2>>/tmp/.awesomewm."..index..".err"
+          -- cmd = {awful.util.shell, "-c", "exec "..cmd_obj.cmd..redirect_cmd}
+          cmd = cmd_obj.cmd
+        end
+        local rules = true
+        if cmd_obj["rules"] ~= nil then
+          rules = cmd_obj.rules
+        end
+        waiting_pid = spawn(cmd, rules)
         return
       end
     end
