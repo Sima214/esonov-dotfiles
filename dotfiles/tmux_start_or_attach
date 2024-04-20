@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+tmux_create_session () {
+    # Use -d to allow the rest of the function to run
+    tmux -u new-session -d -s persistence -n mon1 'ping -i 5 1.1.1.1'
+    tmux new-window -n word 'aspell -a'
+    tmux new-window -n math 'calc'
+    tmux new-window -n mon2 'watch -n 1.5 iw dev wlan0 link'
+    tmux new-window -n mon3 ''
+    tmux new-window -n prj1
+    tmux new-window -d -n prj2
+    # -d to detach any other client (which there shouldn't be,
+    # since you just created the session).
+    tmux -u attach-session -d -t persistence
+}
+
+tmux -u attach || tmux_create_session
