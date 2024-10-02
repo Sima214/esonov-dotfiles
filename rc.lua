@@ -113,8 +113,7 @@ assert(loadfile(gears.filesystem.get_configuration_dir().."keys.lua"))()
 --[[
   TODO:
     clipboard manager,
-    novideo switcher,
     tag spawn chooser,
     tasklist no bottom character cutting,
-    volume bar,
+    display manager
 --]]
