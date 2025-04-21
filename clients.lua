@@ -52,6 +52,13 @@ local clientkeys = gears.table.join(
   ),
   awful.key({modkey}, "b", toogle_borderless,
             {description = "Toogle visibility of the WM Bar.", group = "Clients"}),
+  awful.key({modkey}, "v",
+    function(c)
+      c.floating = not c.floating
+      c:raise()
+    end,
+    {description = "Toggle floating property.", group = "Clients"}
+  ),
   awful.key({modkey, "Alt"}, "c", function(c) c:kill() end,
             {description = "Close focused client.", group = "Clients"}),
   awful.key({modkey, "Alt"}, "x", force_kill,

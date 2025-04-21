@@ -93,7 +93,13 @@ end
 
 -- Create an empty file (touch).
 function touch(filename)
-  return lfs.touch(filename)
+  f, err = io.open(filename, "w")
+  if f then
+    f:close()
+    return true
+  else
+    return nil, err
+  end
 end
 
 -----------------------------------------------------------------

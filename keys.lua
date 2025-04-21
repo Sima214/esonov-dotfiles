@@ -7,6 +7,7 @@ local wibox = require("wibox")
 -- Theme handling library
 local beautiful = require("beautiful")
 -- Notification library
+local naughty = require("naughty")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
 -- Bash completion
@@ -19,8 +20,12 @@ local clients = require("clients")
 
 -- Generic key bindings.
 local function awesome_permanent_quit()
-  touch("~/no_gui")
-  awesome.quit()
+  ok, msg = touch("/tmp/no_gui")
+  if not ok then
+    naughty.notify({text = string.format("Cannot create mark file due to `%s`!", msg)})
+  else
+    awesome.quit()
+  end
 end
 
 globalkeys = gears.table.join(
@@ -102,6 +107,7 @@ end, {description = "Clear monitor lockup and switch display to X11", group = "M
 local misc_03 = awful.key({modkey, "Shift"}, "n", function()
   awful.spawn("switcher -mon dp -delay 500 -vt 2")
 end, {description = "Switch display connection to Weston", group = "Misc"})
+
 globalkeys = gears.table.join(globalkeys, misc_01, misc_02, misc_03)
 
 -- Register keybinds.
