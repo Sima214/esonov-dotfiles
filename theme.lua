@@ -147,4 +147,20 @@ theme.tag.colors.halo = {
     active="#cac8d1aa"
 }
 
+theme.weather = {
+    icons = {
+        path = gears.filesystem.get_configuration_dir().."icons/weather/"
+    },
+    side_text = {
+        font = "Roboto 6.5",
+        margin_left = dpi(4),
+        margin_right = dpi(5),
+        margin_top = dpi(1),
+    },
+    separator = {
+        width = dpi(3),
+        color = "#cac8d1"
+    }
+}
+
 return theme

@@ -59,6 +59,12 @@ local clientkeys = gears.table.join(
     end,
     {description = "Toggle floating property.", group = "Clients"}
   ),
+  awful.key({modkey}, "q",
+    function(c)
+      print(client2string(c))
+    end,
+    {description = "Query client debug information and print to log.", group = "Clients"}
+  ),
   awful.key({modkey, "Alt"}, "c", function(c) c:kill() end,
             {description = "Close focused client.", group = "Clients"}),
   awful.key({modkey, "Alt"}, "x", force_kill,
@@ -73,7 +79,7 @@ client.connect_signal("manage", function(c)
   c.update_borderless = update_borderless
   c.toogle_borderless = toogle_borderless
   -- Debug
-  print("New client: ", client2string(c))
+  -- print("New client: ", client2string(c))
   if awesome.startup and not c.size_hints.user_position and not c.size_hints.program_position then
     -- Prevent clients from being unreachable after screen count changes.
     awful.placement.no_offscreen(c)
@@ -97,7 +103,7 @@ client.connect_signal("mouse::enter", function(c)
 end)
 
 client.connect_signal("request::titlebars", function(c)
-  print("Titlebars for "..client2string(c))
+  -- print("Titlebars for "..client2string(c))
   local theme = beautiful.get()
   -- Fine! Here you go.
   awful.titlebar(c, {

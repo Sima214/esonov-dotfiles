@@ -350,7 +350,7 @@ function api.gen_widget(scr)
     if #mods == 0 and tag then
       -- Right mouse click locks.
       if button == 3 and #tag.instance:clients() == 0 then
-        print(string.format("Tag's %d lock toogled.", tag.index))
+        -- print(string.format("Tag's %d lock toogled.", tag.index))
         tag_toogle_lock(tag, true)
       end
     end

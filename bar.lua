@@ -13,6 +13,7 @@ local layout = require("beautiful").get().bar_layout
 local tags = require("tags")
 local clients = require("clients")
 local launcher = require("launcher")
+local weather = require("weather")
 
 -- Event handlers.
 -- Track prompt size changes.
@@ -58,6 +59,8 @@ local function on_new_screen(scr)
   local taglist_height = select(2, scr.taglist:fit({}, screen_width, screen_height))
   -- Generate the tasklist widget.
   scr.tasklist = clients.gen_widget(scr)
+  -- Generate the weather widget.
+  scr.weather = weather.gen_widget(scr, taglist_height)
   -- Limit bar height.
   local wibar_height = taglist_height + layout.tasklist_height
   -- Create the wibar to hold the 'always visible' widgets.
@@ -84,7 +87,7 @@ local function on_new_screen(scr)
           {
             -- TODO: add system monitors
             id = "placeholder",
-            markup = "",
+            markup = "                        ",
             widget = wibox.widget.textbox
           }
         },
@@ -101,6 +104,8 @@ local function on_new_screen(scr)
             strategy = "max",
             wibox.widget.systray()
           },
+          -- Place weather widget.
+          scr.weather,
           wibox.widget.textclock(),
           -- Global/Current client title bar buttons.
           {

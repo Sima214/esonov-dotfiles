@@ -5,3 +5,6 @@ cache
 *.hist
 *.S
 luac.out
+
+machine_identifier
+*.key

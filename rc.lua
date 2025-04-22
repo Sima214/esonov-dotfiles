@@ -91,6 +91,16 @@ function color2rgba(color)
   return r, g, b, a
 end
 
+function read_secret(filename)
+  local f, msg = io.open(filename, "r")
+  if f then
+    local s = f:read("*all")
+    return s:gsub("%s+", "")
+  else
+    return nil, msg
+  end
+end
+
 -- Create an empty file (touch).
 function touch(filename)
   f, err = io.open(filename, "w")
@@ -102,6 +112,15 @@ function touch(filename)
   end
 end
 
+-- Check if a process is already running.
+local function is_running(cmd_name)
+  local fh = io.popen("pgrep -x " .. cmd_name)
+  local out = fh:read("*a")
+  fh:close()
+  -- out will be empty if no such process exists
+  return out:match("%d+") ~= nil
+end
+
 -----------------------------------------------------------------
 
 -- Execute static configuration code.
@@ -111,7 +130,9 @@ assert(loadfile(gears.filesystem.get_configuration_dir().."static.lua"))()
 assert(loadfile(gears.filesystem.get_configuration_dir().."bar.lua"))()
 
 -- Use a 3rd party systray volume control
-require("awful").spawn.spawn("pasystray -i 1 -m 66")
+if not is_running("pasystray") then
+  require("awful").spawn.spawn("pasystray -i 1 -m 66")
+end
 
 -- Setup keybinds.
 assert(loadfile(gears.filesystem.get_configuration_dir().."keys.lua"))()
