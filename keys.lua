@@ -98,17 +98,29 @@ globalkeys = launcher.register_buttons(globalkeys)
 globalkeys = clients.register_buttons(globalkeys)
 
 -- Misc
-local misc_01 = awful.key({modkey, "Shift"}, "m", function()
-  awful.spawn("switcher -mon hdmi2")
-end, {description = "Switch display to X11", group = "Misc"})
-local misc_02 = awful.key({modkey, "Shift"}, "l", function()
-  awful.spawn("switcher -mon dp -delay 1500 -mon hdmi2")
-end, {description = "Clear monitor lockup and switch display to X11", group = "Misc"})
-local misc_03 = awful.key({modkey, "Shift"}, "n", function()
-  awful.spawn("switcher -mon dp -delay 500 -vt 2")
-end, {description = "Switch display connection to Weston", group = "Misc"})
+local function artificial_mouse_click(receiver)
+  -- print(string.format("Pressing client %i at coords (%i, %i).", receiver.pid, x, y))
+  -- local old_coords = mouse.coords()
+  awful.spawn("xdotool click 1 click 1 click 1", false)
+end
 
-globalkeys = gears.table.join(globalkeys, misc_01, misc_02, misc_03)
+local misc_04 = awful.key({modkey, "Shift"}, "a", function()
+  artificial_mouse_click(client.focus)
+end, {description = "Autoclicker x3", group = "Misc"})
+globalkeys = gears.table.join(globalkeys, misc_04)
+
+if machine_identifier ~= "laptop" then
+  local misc_01 = awful.key({modkey, "Shift"}, "m", function()
+    awful.spawn("switcher -mon hdmi2")
+  end, {description = "Switch display to X11", group = "Misc"})
+  local misc_02 = awful.key({modkey, "Shift"}, "l", function()
+    awful.spawn("switcher -mon dp -delay 1500 -mon hdmi2")
+  end, {description = "Clear monitor lockup and switch display to X11", group = "Misc"})
+  local misc_03 = awful.key({modkey, "Shift"}, "n", function()
+    awful.spawn("switcher -mon dp -delay 500 -vt 2")
+  end, {description = "Switch display connection to Weston", group = "Misc"})
+  globalkeys = gears.table.join(globalkeys, misc_01, misc_02, misc_03)
+end
 
 -- Register keybinds.
 root.keys(globalkeys)

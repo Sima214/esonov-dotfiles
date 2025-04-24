@@ -159,7 +159,7 @@ theme.weather = {
     },
     separator = {
         width = dpi(3),
-        color = "#cac8d1"
+        color = theme.bg_focus
     }
 }
 
