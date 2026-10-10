@@ -159,12 +159,26 @@ function api.setup(scr, tags_registry)
       rule = {type = "normal"},
       properties = {tag = tags_registry[#tags_registry].name}
     },
-    {
-      -- Rule breakers. These are always floating windows.
+    -- Rule breakers:
+    { -- Dialog popups.
       rule = {type = "dialog"},
       properties = {
-        titlebars_enabled = true
+        titlebars_enabled = true,
+        floating = true,
+        maximized = false
       }
+    },
+    { -- SteamVR
+      rule_any = {
+        class = {
+          "vrmonitor",
+          "vrcompositor",
+          "SteamVR",
+          "SteamVR_Namespace",
+          "vrwebhelper"
+        }
+      },
+      properties = { floating = true, maximized = false, titlebars_enabled = false }
     }
   }
   print("Restraining clients...")
