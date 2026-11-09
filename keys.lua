@@ -17,6 +17,7 @@ comp.bashcomp_load("/usr/share/bash-completion/bash_completion")
 local tags = require("tags")
 local launcher = require("launcher")
 local clients = require("clients")
+local math_util = assert(loadfile(gears.filesystem.get_configuration_dir().."math.lua"))()
 
 -- Generic key bindings.
 local function awesome_permanent_quit()
@@ -109,18 +110,105 @@ local misc_04 = awful.key({modkey, "Shift"}, "a", function()
 end, {description = "Autoclicker x3", group = "Misc"})
 globalkeys = gears.table.join(globalkeys, misc_04)
 
-if machine_identifier ~= "laptop" then
-  local misc_01 = awful.key({modkey, "Shift"}, "m", function()
-    awful.spawn("switcher -mon hdmi2")
-  end, {description = "Switch display to X11", group = "Misc"})
-  local misc_02 = awful.key({modkey, "Shift"}, "l", function()
-    awful.spawn("switcher -mon dp -delay 1500 -mon hdmi2")
-  end, {description = "Clear monitor lockup and switch display to X11", group = "Misc"})
-  local misc_03 = awful.key({modkey, "Shift"}, "n", function()
-    awful.spawn("switcher -mon dp -delay 500 -vt 2")
-  end, {description = "Switch display connection to Weston", group = "Misc"})
-  globalkeys = gears.table.join(globalkeys, misc_01, misc_02, misc_03)
+-- if machine_identifier ~= "laptop" then
+  -- local misc_01 = awful.key({modkey, "Shift"}, "m", function()
+  --   awful.spawn("switcher -mon hdmi2")
+  -- end, {description = "Switch display to X11", group = "Misc"})
+  -- local misc_02 = awful.key({modkey, "Shift"}, "l", function()
+  --   awful.spawn("switcher -mon dp -delay 1500 -mon hdmi2")
+  -- end, {description = "Clear monitor lockup and switch display to X11", group = "Misc"})
+  -- local misc_03 = awful.key({modkey, "Shift"}, "n", function()
+  --   awful.spawn("switcher -mon dp -delay 500 -vt 2")
+  -- end, {description = "Switch display connection to Weston", group = "Misc"})
+  -- globalkeys = gears.table.join(globalkeys, misc_02)
+-- end
+
+-- Autoclicker: uniform interval (1.8~2.3s), Gaussian hold duration, tag change cancellation
+local autoclick_state = {
+  timer = nil,
+  release_timer = nil,
+  button_pressed = false,
+}
+
+local function autoclick_stop(notify_if_not_running)
+  if autoclick_state.timer then
+    autoclick_state.timer:stop()
+    autoclick_state.timer = nil
+  elseif notify_if_not_running then
+    naughty.notify({
+      title = "Autoclicker",
+      text = "Autoclicker is not running",
+      timeout = 2
+    })
+    return
+  end
+
+  if autoclick_state.release_timer then
+    autoclick_state.release_timer:stop()
+    autoclick_state.release_timer = nil
+  end
+
+  if autoclick_state.button_pressed then
+    root.fake_input("button_release", 1)
+    autoclick_state.button_pressed = false
+  end
 end
+
+local function autoclick_press()
+  root.fake_input("button_press", 1)
+  autoclick_state.button_pressed = true
+
+  local hold_duration = math_util.random_gaussian(0.070, 0.012, 0.040, 0.120)
+  autoclick_state.release_timer = gears.timer.start_new(hold_duration, function()
+    if autoclick_state.button_pressed then
+      root.fake_input("button_release", 1)
+      autoclick_state.button_pressed = false
+    end
+    autoclick_state.release_timer = nil
+    return false -- one-shot timer
+  end)
+end
+
+local function autoclick_start()
+  if autoclick_state.timer then
+    naughty.notify({
+      title = "Autoclicker",
+      text = "Autoclicker already running!",
+      timeout = 2
+    })
+    return
+  end
+
+  -- Fire initial click immediately
+  autoclick_press()
+
+  -- Schedule repeating clicks with uniform distribution (1.8~2.3s)
+  local initial_interval = math_util.random_interval(1.8, 2.3)
+  autoclick_state.timer = gears.timer({
+    timeout = initial_interval,
+    callback = function()
+      autoclick_press()
+      if autoclick_state.timer then
+        autoclick_state.timer.timeout = math_util.random_interval(1.8, 2.3)
+        autoclick_state.timer:again()
+      end
+    end
+  })
+  autoclick_state.timer:start()
+end
+
+-- Auto-cancel when switching tags/workspaces
+tag.connect_signal("property::selected", function(t)
+  if autoclick_state.timer then
+    autoclick_stop(false)
+  end
+end)
+
+local autoclick_start_key = awful.key({modkey, "Shift"}, "m", autoclick_start,
+  {description = "Start autoclicker (1.8~2.3s interval)", group = "Misc"})
+local autoclick_stop_key = awful.key({modkey, "Shift"}, "n", function() autoclick_stop(true) end,
+  {description = "Stop autoclicker", group = "Misc"})
+globalkeys = gears.table.join(globalkeys, autoclick_start_key, autoclick_stop_key)
 
 -- Register keybinds.
 root.keys(globalkeys)

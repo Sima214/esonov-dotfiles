@@ -1,5 +1,6 @@
 -- Standard awesome libraries
 local gears = require("gears")
+local awful = require("awful")
 -- Notification library
 local naughty = require("naughty")
 require("naughty.dbus")
@@ -67,30 +68,6 @@ function is_surface_valid(s)
   end
 end
 
--- theme color(hex) to cairo rgb(a) tuple
-function color2rgb(color)
-  local r, g, b
-  local rgb = tonumber(color:sub(2), 16)
-  b = (rgb & 0xff) / 0xff
-  rgb = rgb >> 8
-  g = (rgb & 0xff) / 0xff
-  rgb = rgb >> 8
-  r = (rgb & 0xff) / 0xff
-  return r, g, b
-end
-function color2rgba(color)
-  local r, g, b, a
-  local rgba = tonumber(color:sub(2), 16)
-  a = (rgba & 0xff) / 0xff
-  rgba = rgba >> 8
-  b = (rgba & 0xff) / 0xff
-  rgba = rgba >> 8
-  g = (rgba & 0xff) / 0xff
-  rgba = rgba >> 8
-  r = (rgba & 0xff) / 0xff
-  return r, g, b, a
-end
-
 function read_secret(filename)
   local f, msg = io.open(filename, "r")
   if f then
@@ -131,7 +108,7 @@ assert(loadfile(gears.filesystem.get_configuration_dir().."bar.lua"))()
 
 -- Use a 3rd party systray volume control
 if not is_running("pasystray") then
-  require("awful").spawn.spawn("pasystray -i 1 -m 66")
+  awful.spawn.spawn("pasystray -i 1 -m 66")
 end
 
 -- Setup keybinds.

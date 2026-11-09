@@ -13,6 +13,7 @@ local pango = lgi.Pango
 local pangocairo = lgi.PangoCairo
 -- Helpers.
 local clients = require("clients")
+local math_util = assert(loadfile(gears.filesystem.get_configuration_dir().."math.lua"))()
 -- Extra libs.
 local lfs = require("lfs")
 
@@ -67,7 +68,7 @@ end
 local function generate_halo(icon_size, shape, color)
   local ret = cairo.ImageSurface.create(cairo.Format.ARGB32, icon_size, icon_size)
   local cr = cairo.Context.create(ret)
-  cr:set_source_rgba(color2rgba(color))
+  cr:set_source_rgba(math_util.color2rgba(color))
   cr:scale(layout.halo_scale, layout.halo_scale)
   cr:mask_surface(shape, layout.padding, layout.padding)
   return ret
@@ -78,7 +79,7 @@ local function generate_icon_cairo_base(color, w, h)
   h = h or w
   local surface = cairo.ImageSurface.create(cairo.Format.RGB32, w, h)
   local cr = cairo.Context.create(surface)
-  cr:set_source_rgb(color2rgb(color))
+  cr:set_source_rgb(math_util.color2rgb(color))
   cr:rectangle(0, 0, w, h)
   cr:fill()
   return surface, cr
@@ -211,15 +212,15 @@ local function render_tag(self, ct, cr, w, h)
     cr:paint()
     -- Client bubble.
     if tag.locked then
-      cr:set_source_rgba(color2rgba(colors_bubble.locked))
+      cr:set_source_rgba(math_util.color2rgba(colors_bubble.locked))
     elseif tag.instance.selected then
-      cr:set_source_rgba(color2rgba(colors_bubble.selected))
+      cr:set_source_rgba(math_util.color2rgba(colors_bubble.selected))
     elseif client_count ~= 0 then
-      cr:set_source_rgba(color2rgba(colors_bubble.active))
+      cr:set_source_rgba(math_util.color2rgba(colors_bubble.active))
     elseif tag.spawning_index then
-      cr:set_source_rgba(color2rgba(colors_bubble.waiting))
+      cr:set_source_rgba(math_util.color2rgba(colors_bubble.waiting))
     else
-      cr:set_source_rgba(color2rgba(colors_bubble.inactive))
+      cr:set_source_rgba(math_util.color2rgba(colors_bubble.inactive))
     end
     cr:arc(offset + layout.bubble_offset_x, layout.bubble_offset_y, layout.bubble_radius, 0.0, math.pi*2.0)
     cr:fill()
@@ -229,9 +230,9 @@ local function render_tag(self, ct, cr, w, h)
       cr:update_layout(self.bubble_text_layout)
       local _, logical = self.bubble_text_layout:get_pixel_extents()
       if tag.instance.selected then
-        cr:set_source_rgba(color2rgba(colors_bubble.font.selected))
+        cr:set_source_rgba(math_util.color2rgba(colors_bubble.font.selected))
       else
-        cr:set_source_rgba(color2rgba(colors_bubble.font.active))
+        cr:set_source_rgba(math_util.color2rgba(colors_bubble.font.active))
       end
       cr:move_to(offset + layout.bubble_text_offset_x, layout.bubble_text_offset_y)
       cr:show_layout(self.bubble_text_layout)
